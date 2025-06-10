@@ -2,6 +2,7 @@ import { serve, caution, HTTP_STATUS_CODE, validate_req_json } from 'spooder';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { ColorInput } from 'bun';
+import { init as init_wow_export } from './wow.export/module';
 
 const server = serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 
@@ -37,17 +38,7 @@ server.route('/', () => {
 	return new Response(file, { status: 200 });
 });
 
-server.dir('/wow.export', './wow.export', async (file_path, file, stat, _request) => {
-	// ignore hidden files
-	if (path.basename(file_path).startsWith('.'))
-		return 404; // Not Found
-	
-	// ignore directories
-	if (stat.isDirectory())
-		return 401; // Unauthorized
-	
-	return file;
-});
+init_wow_export(server);
 
 async function default_handler(status_code: number): Promise<Response> {
 	return new Response(HTTP_STATUS_CODE[status_code], { status: status_code });
