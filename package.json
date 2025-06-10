@@ -1,0 +1,28 @@
+{
+	"name": "kruithne.net",
+	"type": "module",
+	"module": "server.ts",
+	"spooder": {
+		"auto_restart": 0,
+		"run": "bun run server.ts",
+		"update": [
+			"git fetch --depth=1 origin main",
+			"git reset --hard origin/main",
+			"git clean -fd",
+			"bun install"
+		],
+		"canary": {
+			"account": "kruithne",
+			"repository": "kruithne/kruithne.net",
+			"crash_console_history": 64,
+			"labels": ["⚠️ canary-report"],
+			"throttle": 86400
+		}
+	},
+	"devDependencies": {
+		"@types/bun": "^1.2.15"
+	},
+	"dependencies": {
+		"spooder": "^4.6.1"
+	}
+}

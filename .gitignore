@@ -1,0 +1,8 @@
+# third party dependencies
+node_modules
+
+# bun lock file
+bun.lock
+
+# .env.local file
+.env.local
