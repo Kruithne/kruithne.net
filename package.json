@@ -9,6 +9,7 @@
 			"git fetch --depth=1 origin main",
 			"git reset --hard origin/main",
 			"git clean -fd",
+			"git submodule update --init --recursive",
 			"bun install"
 		],
 		"canary": {
