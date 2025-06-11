@@ -38,6 +38,8 @@ server.route('/', () => {
 	return new Response(file, { status: 200 });
 });
 
+server.dir('/static', './static');
+
 init_wow_export(server);
 
 async function default_handler(status_code: number): Promise<Response> {
