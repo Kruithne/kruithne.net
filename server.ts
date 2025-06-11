@@ -39,6 +39,7 @@ server.route('/', () => {
 });
 
 server.dir('/static', './static');
+server.dir('/home', './home');
 
 init_wow_export(server);
 
