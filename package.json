@@ -1,7 +1,9 @@
 {
 	"name": "kruithne.net",
-	"type": "module",
 	"module": "server.ts",
+	"devDependencies": {
+		"@types/bun": "^1.2.15"
+	},
 	"spooder": {
 		"auto_restart": 0,
 		"run": "bun run server.ts",
@@ -20,10 +22,8 @@
 			"throttle": 86400
 		}
 	},
-	"devDependencies": {
-		"@types/bun": "^1.2.15"
-	},
+	"type": "module",
 	"dependencies": {
-		"spooder": "^4.6.1"
+		"spooder": "^4.6.2"
 	}
 }
