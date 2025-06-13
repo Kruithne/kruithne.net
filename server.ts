@@ -1,6 +1,7 @@
 import { serve, caution, HTTP_STATUS_CODE, validate_req_json } from 'spooder';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { ColorInput } from 'bun';
 import { init as init_wow_export } from './wow.export/module';
 
@@ -39,7 +40,33 @@ server.route('/', () => {
 });
 
 server.dir('/static', './static');
-server.dir('/home', './home');
+server.dir('/home', './home', async (file_path, file, stat, request) => {
+	if (path.basename(file_path).startsWith('.'))
+		return 404;
+
+	if (stat.isDirectory()) {
+		try {
+			const entries = await fs.promises.readdir(file_path);
+			const filtered_entries = entries.filter(entry => !entry.startsWith('.'));
+			
+			const links = filtered_entries.map(entry => {
+				const href = path.join(request.url.replace(/\/$/, ''), entry);
+				return `<a href="${href}">${entry}</a>`;
+			}).join('<br>\n');
+			
+			const html = `<!DOCTYPE html><html><head><title>Directory listing</title></head><body><h1>Directory listing</h1>${links}</body></html>`;
+			
+			return new Response(html, {
+				status: 200,
+				headers: { 'Content-Type': 'text/html' }
+			});
+		} catch (err) {
+			return 500;
+		}
+	}
+
+	return file;
+});
 
 init_wow_export(server);
 
