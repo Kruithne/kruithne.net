@@ -50,8 +50,7 @@ server.dir('/home', './home', async (file_path, file, stat, request) => {
 			const filtered_entries = entries.filter(entry => !entry.startsWith('.'));
 			
 			const links = filtered_entries.map(entry => {
-				const href = path.join(request.url.replace(/\/$/, ''), entry);
-				return `<a href="${href}">${entry}</a>`;
+				return `<a href="${entry}">${entry}</a>`;
 			}).join('<br>\n');
 			
 			const html = `<!DOCTYPE html><html><head><title>Directory listing</title></head><body><h1>Directory listing</h1>${links}</body></html>`;
