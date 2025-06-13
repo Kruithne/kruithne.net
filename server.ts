@@ -49,8 +49,9 @@ server.dir('/home', './home', async (file_path, file, stat, request) => {
 			const entries = await fs.promises.readdir(file_path);
 			const filtered_entries = entries.filter(entry => !entry.startsWith('.'));
 			
+			const request_path = new URL(request.url).pathname;
 			const links = filtered_entries.map(entry => {
-				return `<a href="${entry}">${entry}</a>`;
+				return `<a href="${request_path}/${entry}">${entry}</a>`;
 			}).join('<br>\n');
 			
 			const html = `<!DOCTYPE html><html><head><title>Directory listing</title></head><body><h1>Directory listing</h1>${links}</body></html>`;
