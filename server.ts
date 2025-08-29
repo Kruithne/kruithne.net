@@ -1,11 +1,11 @@
-import { serve, caution, HTTP_STATUS_CODE, validate_req_json } from 'spooder';
+import { http_serve, caution, HTTP_STATUS_TEXT } from 'spooder';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { ColorInput } from 'bun';
 import { init as init_wow_export } from './wow.export/module';
 
-const server = serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
+const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 
 const ANSI_RESET = '\x1b[0m';
 function log(message: string, color: ColorInput = 'purple'): void {
@@ -71,7 +71,7 @@ server.dir('/home', './home', async (file_path, file, stat, request) => {
 init_wow_export(server);
 
 async function default_handler(status_code: number): Promise<Response> {
-	return new Response(HTTP_STATUS_CODE[status_code], { status: status_code });
+	return new Response(HTTP_STATUS_TEXT[status_code], { status: status_code });
 }
 
 // Unhandled exceptions and rejections from handlers.
