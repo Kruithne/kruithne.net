@@ -1,38 +1,9 @@
 import { http_serve, caution, HTTP_STATUS_TEXT } from 'spooder';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { ColorInput } from 'bun';
 import { init as init_wow_export } from './wow.export/module';
 
 const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
-
-const ANSI_RESET = '\x1b[0m';
-function log(message: string, color: ColorInput = 'purple'): void {
-	const ansi = Bun.color(color, 'ansi');
-	process.stdout.write(`[{info}] > ${message}\n`.replace(/\{([^}]+)\}/g, `${ansi}$1${ANSI_RESET}`));
-}
-
-// let index: string|null = null;
-// let index_hash: string|null = null;
-
-// server.route('/', async (req, _url) => {
-// 	if (index === null) {
-// 		index = await Bun.file('./html/index.html').text();
-// 		index_hash = crypto.createHash('sha256').update(index).digest('hex');
-// 	}
-	
-// 	const headers = {
-// 		'Content-Type': 'text/html',
-// 		'Access-Control-Allow-Origin':  '*',
-// 		'ETag': index_hash as string
-// 	} as Record<string, string>;
-	
-// 	if (req.headers.get('If-None-Match') === index_hash)
-// 		return new Response(null, { status: 304, headers }); // Not Modified
-	
-// 	return new Response(index, { status: 200, headers });
-// });
 
 server.route('/', () => {
 	const file = Bun.file('./html/index.html');
