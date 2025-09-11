@@ -1,4 +1,75 @@
-This is the error page.
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			@font-face {
+				font-family: 'dos_vga_437';
+				src: url('../static/chicago/fonts/dos_vga_437.ttf') format('truetype');
+			}
 
-{{ error_code }}
-{{ error_text }}
+			* {
+				cursor: default;
+				user-select: none;
+			}
+
+			body {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: white;
+				height: 100vh;
+				overflow: hidden;
+				background: radial-gradient(ellipse at center, #093e9e 0%, #04142f 100%);
+				font-family: 'dos_vga_437', monospace;
+			}
+
+			h1 {
+				background-color: white;
+				color: #093e9e;
+				padding: 10px 12px 7px 12px;
+				font-size: 32px;
+			}
+
+			main {
+				max-width: 780px;
+				font-size: 21px;
+				margin: 0 30px;
+			}
+
+			.center {
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>KRUITHNE.NET</h1>
+		<main>
+			<p>A fatal exception {{ error_code }} has occurred at 0013:4B5255 in VXD HTTP(01) +4255434B59. The current application will be terminated.</p>
+			<ul>
+				<li>Press F5 to refresh the current application.</li>
+				<li>Press CTRL + ALT + HOME again to return home.</li>
+			</ul>
+			<p class="center">Press Backspace to go back</p>
+		</main>
+		<script>
+			document.addEventListener('keydown', function(event) {
+				if (event.key === 'F5')
+					return;
+				
+				if (event.ctrlKey && event.altKey && event.key === 'Home') {
+					event.preventDefault();
+					window.location.href = '/';
+					return;
+				}
+				
+				if (event.key === 'Backspace') {
+					event.preventDefault();
+					window.history.back();
+				}
+			});
+		</script>
+	</body>
+</html>
