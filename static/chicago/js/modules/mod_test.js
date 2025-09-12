@@ -1,7 +1,8 @@
 export default {
 	preload: [
 		'/{{cache_bust=static/chicago/css/test_css_1.css}}',
-		'/{{cache_bust=static/chicago/fonts/OCRAEXT.TTF}}'
+		'/{{cache_bust=static/chicago/fonts/OCRAEXT.TTF}}',
+		'/{{cache_bust=static/chicago/images/test_image.webp}}'
 	],
 
 	component: {
@@ -24,6 +25,7 @@ export default {
 			<h1>{{ test }}</h1>
 			<c-ui-button label="Cancel"/>
 			{{ module_id }}
+			<img src="/{{cache_bust=static/chicago/images/test_image.webp}}"/>
 		`
 	}
 };

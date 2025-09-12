@@ -73,11 +73,15 @@ async function load_module(module_path) {
 						preloads.push(load_stylesheet(href));
 						break;
 
+					case 'webp':
+						preload_image(href);
+						break;
+
 					default:
 						console.error(`load_module unsupported ${ext_lower} preload ${href}`);
 				}
 			}
-			
+
 			global_module_meta.set(module_id, await Promise.all(preloads));
 		}
 
@@ -117,6 +121,19 @@ function unload_module(module_id) {
 	}
 
 	global_module_meta.delete(module_id);
+}
+
+async function preload_image(src) {
+	console.log(`load_image ${src}`);
+	return new Promise(resolve => {
+		const img = new Image();
+		img.onload = () => resolve();
+		img.onerror = () => {
+			console.error(`preload_image failed ${src}`);
+			resolve();	
+		};
+		img.src = src;
+	});
 }
 
 async function load_stylesheet(href) {
@@ -207,9 +224,6 @@ function unload_font(font_name) {
 	app.mount('body');
 
 	const test = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
-	setTimeout(() => unload_module(test), 3000);
-
-	const test_b = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
-	setTimeout(() => unload_module(test_b), 7000);
+	//setTimeout(() => unload_module(test), 3000);
 })();
 // endregion
