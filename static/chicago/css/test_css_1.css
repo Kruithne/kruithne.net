@@ -1,8 +1,3 @@
-@font-face {
-	font-family: 'OCRAEXT';
-	src: url('{{asset=fonts/OCRAEXT.ttf}}') format('truetype');
-}
-
 body {
 	background: pink !important;
 	font-family: OCRAEXT;
