@@ -25,7 +25,7 @@ const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LI
 
 const global_sub_table = { cache_bust };
 const cache = cache_http({
-	ttl: 5 * 60 * 60 * 1000, // 5 minutes
+	ttl: 24 * 60 * 60 * 1000, // 5 hours
 	max_size: 5 * 1024 * 1024, // 5 MB
 	use_canary_reporting: true,
 	use_etags: true,
@@ -60,9 +60,14 @@ server.default((req, status_code) => cache.request(
 	status_code
 ));
 
-server.route('/', () => {
-	const file = Bun.file('./html/index.html');
-	return new Response(file, { status: 200 });
+server.route('/', (req, url) => {
+	return cache.request(req, '/', async () => {
+		return await parse_template(
+			await resolve_bootstrap_content(Bun.file('./html/index.html')),
+			global_sub_table,
+			false
+		);
+	});
 });
 
 const STATIC_SUB_EXT = ['.css', '.js'];
@@ -73,6 +78,8 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 	
 	if (stat.isDirectory())
 		return HTTP_STATUS_CODE.Unauthorized_401;
+
+	await Bun.sleep(400); // todo: remove me
 
 	const ext_idx = file_path.lastIndexOf('.');
 	if (ext_idx > -1) {
