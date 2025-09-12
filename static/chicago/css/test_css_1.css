@@ -2,3 +2,9 @@ body {
 	background: pink !important;
 	font-family: OCRAEXT;
 }
+
+#test {
+	width: 150px;
+	height: 293px;
+	background: url('{{asset=images/test_image.webp}}') no-repeat;
+}

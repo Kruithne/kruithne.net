@@ -138,36 +138,51 @@ async function preload_image(src) {
 
 async function load_stylesheet(href) {
 	console.log(`load_stylesheet ${href}`);
-	return new Promise((resolve, reject) => {
-		const meta = { type: PRELOAD_TYPE_STYLESHEET, href };
-		const existing = document.querySelector(`link[href="${href}"]`);
+	const meta = { type: PRELOAD_TYPE_STYLESHEET, href };
+	const existing = document.querySelector(`style[data-href="${href}"]`);
 
-		if (existing !== null) {
-			existing.setAttribute('data-users', Number(existing.getAttribute('data-users')) + 1);
-			return resolve(meta);
+	if (existing !== null) {
+		existing.setAttribute('data-users', Number(existing.getAttribute('data-users')) + 1);
+		return meta;
+	}
+
+	const style = document.createElement('style');
+	style.setAttribute('data-href', href);
+	style.setAttribute('data-users', 1);
+
+	const res = await fetch(href);
+	const css = await res.text();
+	style.textContent = css;
+
+	// extract preload images directly from CSS
+	const matches = [...css.matchAll(/url\s*\(\s*(?:['"]([^'"]+)['"]|([^)]+))\s*\)/gi)];
+	const preload_images = [];
+
+	for (const match of matches) {
+		const url = match[1] || match[2];
+		if (url?.trim()) {
+			console.log(`preloading image from css ${url}`);
+			preload_images.push(preload_image(url));
 		}
+	}
 
-		const link = document.createElement('link');
-		link.rel = 'stylesheet';
-		link.href = href;
-		link.setAttribute('data-users', 1);
+	await Promise.all(preload_images);
 
-		link.onload = () => resolve(meta);
-		link.onerror = () => reject(new Error('stylesheet failure'));
-		
-		document.head.appendChild(link);
-	});
+	// todo: fonts
+	
+	document.head.appendChild(style);
+	return meta;
 }
 
 function unload_stylesheet(href) {
 	console.log(`unload_stylesheet ${href}`);
-	const link = document.querySelector(`link[href="${href}"]`);
-	if (link !== null) {
-		const new_link_users = Number(link.getAttribute('data-users')) - 1;
+	const style = document.querySelector(`style[data-href="${href}"]`);
+	if (style !== null) {
+		const new_link_users = Number(style.getAttribute('data-users')) - 1;
 		if (new_link_users < 1)
-			link.remove();
+			style.remove();
 		else
-			link.setAttribute('data-users', new_link_users);
+			style.setAttribute('data-users', new_link_users);
 	}
 }
 

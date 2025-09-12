@@ -1,8 +1,7 @@
 export default {
 	preload: [
 		'{{asset=css/test_css_1.css}}',
-		'{{asset=fonts/OCRAEXT.TTF}}',
-		'{{asset=images/test_image.webp}}'
+		'{{asset=fonts/OCRAEXT.TTF}}'
 	],
 
 	component: {
@@ -25,7 +24,7 @@ export default {
 			<h1>{{ test }}</h1>
 			<c-ui-button label="Cancel"/>
 			{{ module_id }}
-			<img src="{{asset=images/test_image.webp}}"/>
+			<div id="test"></div>
 		`
 	}
 };
