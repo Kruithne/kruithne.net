@@ -53,9 +53,9 @@ async function load_module(module_path) {
 		console.log(`load_module ${module_path} ${module_id}`);
 
 		const mod = (await import(module_path)).default;
+		const preloads = [];
 
 		if (mod.preload) {
-			const preloads = [];
 			const tracked_css = [];
 
 			for (const href of mod.preload) {
@@ -83,9 +83,18 @@ async function load_module(module_path) {
 				}
 			}
 
-			await Promise.all(preloads)
 			global_module_meta.set(module_id, tracked_css);
 		}
+
+		if (mod.component.template) {
+			const image_matches = [...mod.component.template.matchAll(/"([^"]*\.webp[^"]*)"/gi)];
+			for (const match of image_matches) {
+				console.log(`preloading template image ${match[1]}`);
+				preloads.push(preload_image(match[1]));
+			}
+		}
+
+		await Promise.all(preloads);
 
 		sys_state.modules.push({
 			id: module_id,
@@ -214,9 +223,5 @@ async function load_font(font_name, href) {
 	app.mount('body');
 
 	const test = await load_module('{{asset=js/modules/mod_test.js}}');
-	const test_b = await load_module('{{asset=js/modules/mod_test_b.js}}');
-	setTimeout(() => unload_module(test), 3000);
-
-	setTimeout(() => unload_module(test_b), 7000);
 })();
 // endregion

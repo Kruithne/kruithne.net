@@ -6,5 +6,4 @@ body {
 #test {
 	width: 150px;
 	height: 293px;
-	background: url('{{asset=images/test_image.webp}}') no-repeat;
 }
