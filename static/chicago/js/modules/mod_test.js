@@ -1,6 +1,7 @@
 export default {
-	stylesheets: [
-		'/{{cache_bust=static/chicago/css/test_css_1.css}}'
+	preload: [
+		'/{{cache_bust=static/chicago/css/test_css_1.css}}',
+		'/{{cache_bust=static/chicago/fonts/OCRAEXT.TTF}}'
 	],
 
 	component: {

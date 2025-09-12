@@ -2,6 +2,18 @@ import { createApp, reactive } from '/{{cache_bust=static/chicago/js/lib/vue.esm
 
 // region generic
 const EMPTY_ARRAY = new Array(0);
+
+function path_basename(path) {
+	return path.match(/(?:^|\/)([^/?#]+)(?:[?#].*)?$/)?.[1] ?? '';
+}
+
+function ext_split(file) {
+	const idx = file.lastIndexOf('.');
+	if (idx === -1)
+		return [file, ''];
+
+	return [file.slice(0, idx), file.slice(idx + 1)];
+}
 // endregion
 
 // region c_ui_button
@@ -30,7 +42,11 @@ const sys_registry = reactive({
 // endregion
 
 // region modules
+const PRELOAD_TYPE_STYLESHEET = 0x1;
+const PRELOAD_TYPE_FONT = 0x2;
+
 const global_module_meta = new Map();
+const global_module_fonts = new Map();
 
 async function load_module(module_path) {
 	try {
@@ -39,17 +55,37 @@ async function load_module(module_path) {
 
 		const mod = (await import(module_path)).default;
 
-		const stylesheets = mod.stylesheets ?? EMPTY_ARRAY;
-		for (const href of stylesheets)
-			await load_stylesheet(href);
+		if (mod.preload) {
+			const preloads = [];
+
+			for (const href of mod.preload) {
+				const href_basename = path_basename(href); // OCRAEXT.TTF
+				const [href_base, href_ext] = ext_split(href_basename); // [OCRAEXT, TTF]
+
+				const ext_lower = href_ext.toLowerCase();
+
+				switch (ext_lower) {
+					case 'ttf':
+						preloads.push(load_font(href_base, href));
+						break;
+
+					case 'css':
+						preloads.push(load_stylesheet(href));
+						break;
+
+					default:
+						console.error(`load_module unsupported ${ext_lower} preload ${href}`);
+				}
+			}
+			
+			global_module_meta.set(module_id, await Promise.all(preloads));
+		}
 
 		sys_state.modules.push({
 			id: module_id,
 			component: mod.component,
 			props: { module_id }
 		});
-
-		global_module_meta.set(module_id, { stylesheets });
 		
 		return module_id;
 	} catch (e) {
@@ -65,10 +101,19 @@ function unload_module(module_id) {
 	if (mod_idx !== -1)
 		sys_state.modules.splice(mod_idx, 1);
 
-	const meta = global_module_meta.get(module_id);
-	if (meta !== undefined) {
-		for (const href of meta.stylesheets)
-			unload_stylesheet(href);
+	for (const meta of global_module_meta.get(module_id) ?? EMPTY_ARRAY) {
+		switch (meta.type) {
+			case PRELOAD_TYPE_STYLESHEET:
+				unload_stylesheet(meta.href);
+				break;
+
+			case PRELOAD_TYPE_FONT:
+				unload_font(meta.font_name);
+				break;
+
+			default:
+				console.error(`unload_module unsupported preload type ${meta.type}`);
+		}
 	}
 
 	global_module_meta.delete(module_id);
@@ -77,10 +122,12 @@ function unload_module(module_id) {
 async function load_stylesheet(href) {
 	console.log(`load_stylesheet ${href}`);
 	return new Promise((resolve, reject) => {
+		const meta = { type: PRELOAD_TYPE_STYLESHEET, href };
 		const existing = document.querySelector(`link[href="${href}"]`);
+
 		if (existing !== null) {
 			existing.setAttribute('data-users', Number(existing.getAttribute('data-users')) + 1);
-			return resolve();
+			return resolve(meta);
 		}
 
 		const link = document.createElement('link');
@@ -88,7 +135,7 @@ async function load_stylesheet(href) {
 		link.href = href;
 		link.setAttribute('data-users', 1);
 
-		link.onload = () => resolve();
+		link.onload = () => resolve(meta);
 		link.onerror = () => reject(new Error('stylesheet failure'));
 		
 		document.head.appendChild(link);
@@ -104,6 +151,39 @@ function unload_stylesheet(href) {
 			link.remove();
 		else
 			link.setAttribute('data-users', new_link_users);
+	}
+}
+
+async function load_font(font_name, href) {
+	console.log(`load_font ${font_name} ${href}`);
+	const existing = global_module_fonts.get(font_name);
+	if (existing) {
+		existing.users += 1;
+		console.log(`font ${font_name} now has ${existing.users} users`);
+		return { type: PRELOAD_TYPE_FONT, font_name };
+	}
+
+	const font = new FontFace(font_name, `url(${href})`);
+	await font.load();
+
+	document.fonts.add(font);
+
+	global_module_fonts.set(font_name, { font, users: 1 });
+	return { type: PRELOAD_TYPE_FONT, font_name };
+}
+
+function unload_font(font_name) {
+	console.log(`unload_font ${font_name}`);
+	const entry = global_module_fonts.get(font_name);
+	if (entry) {
+		entry.users -= 1;
+		console.log(`font ${font_name} now has ${entry.users} users`);
+
+		if (entry.users < 1) {
+			console.log(`unregistering font ${font_name}`);
+			document.fonts.delete(entry.font);
+			global_module_fonts.delete(font_name);
+		}
 	}
 }
 // endregion
@@ -128,5 +208,8 @@ function unload_stylesheet(href) {
 
 	const test = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
 	setTimeout(() => unload_module(test), 3000);
+
+	const test_b = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
+	setTimeout(() => unload_module(test_b), 7000);
 })();
 // endregion
