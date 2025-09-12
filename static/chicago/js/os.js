@@ -75,7 +75,7 @@ async function load_module(module_path) {
 						break;
 
 					case 'webp':
-						preload_image(href);
+						preloads.push(preload_image(href));
 						break;
 
 					default:
