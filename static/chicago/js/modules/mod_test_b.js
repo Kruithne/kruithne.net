@@ -1,6 +1,6 @@
 export default {
 	preload: [
-		'{{asset=css/test_css_1.css}}'
+		'{{asset=css/test_css_2.css}}'
 	],
 
 	component: {

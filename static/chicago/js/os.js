@@ -43,10 +43,9 @@ const sys_registry = reactive({
 
 // region modules
 const PRELOAD_TYPE_STYLESHEET = 0x1;
-const PRELOAD_TYPE_FONT = 0x2;
 
 const global_module_meta = new Map();
-const global_module_fonts = new Map();
+const global_module_fonts = new Set();
 
 async function load_module(module_path) {
 	try {
@@ -57,6 +56,7 @@ async function load_module(module_path) {
 
 		if (mod.preload) {
 			const preloads = [];
+			const tracked_css = [];
 
 			for (const href of mod.preload) {
 				const href_basename = path_basename(href); // OCRAEXT.TTF
@@ -70,6 +70,7 @@ async function load_module(module_path) {
 						break;
 
 					case 'css':
+						tracked_css.push(href);
 						preloads.push(load_stylesheet(href));
 						break;
 
@@ -82,7 +83,8 @@ async function load_module(module_path) {
 				}
 			}
 
-			global_module_meta.set(module_id, await Promise.all(preloads));
+			await Promise.all(preloads)
+			global_module_meta.set(module_id, tracked_css);
 		}
 
 		sys_state.modules.push({
@@ -105,20 +107,8 @@ function unload_module(module_id) {
 	if (mod_idx !== -1)
 		sys_state.modules.splice(mod_idx, 1);
 
-	for (const meta of global_module_meta.get(module_id) ?? EMPTY_ARRAY) {
-		switch (meta.type) {
-			case PRELOAD_TYPE_STYLESHEET:
-				unload_stylesheet(meta.href);
-				break;
-
-			case PRELOAD_TYPE_FONT:
-				unload_font(meta.font_name);
-				break;
-
-			default:
-				console.error(`unload_module unsupported preload type ${meta.type}`);
-		}
-	}
+	for (const href of global_module_meta.get(module_id) ?? EMPTY_ARRAY)
+		unload_stylesheet(href);
 
 	global_module_meta.delete(module_id);
 }
@@ -138,12 +128,11 @@ async function preload_image(src) {
 
 async function load_stylesheet(href) {
 	console.log(`load_stylesheet ${href}`);
-	const meta = { type: PRELOAD_TYPE_STYLESHEET, href };
 	const existing = document.querySelector(`style[data-href="${href}"]`);
 
 	if (existing !== null) {
 		existing.setAttribute('data-users', Number(existing.getAttribute('data-users')) + 1);
-		return meta;
+		return;
 	}
 
 	const style = document.createElement('style');
@@ -154,24 +143,28 @@ async function load_stylesheet(href) {
 	const css = await res.text();
 	style.textContent = css;
 
-	// extract preload images directly from CSS
-	const matches = [...css.matchAll(/url\s*\(\s*(?:['"]([^'"]+)['"]|([^)]+))\s*\)/gi)];
-	const preload_images = [];
+	const css_preload = [];
 
-	for (const match of matches) {
+	// extract preload images directly from CSS
+	const img_matches = [...css.matchAll(/url\s*\(\s*(?:['"]([^'"]+)['"]|([^)]+))\s*\)/gi)];
+	for (const match of img_matches) {
 		const url = match[1] || match[2];
 		if (url?.trim()) {
 			console.log(`preloading image from css ${url}`);
-			preload_images.push(preload_image(url));
+			css_preload.push(preload_image(url));
 		}
 	}
 
-	await Promise.all(preload_images);
+	// extract referenced fonts directly from CSS
+	const font_matches = [...css.matchAll(/font-family\s*:\s*([^;]+)/gi)];
+	for (const match of font_matches) {
+		const font_name = match[1].trim();
+		console.log(`preloading font from css ${font_name}`);
+		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.ttf`));
+	}
 
-	// todo: fonts
-	
+	await Promise.all(css_preload);
 	document.head.appendChild(style);
-	return meta;
 }
 
 function unload_stylesheet(href) {
@@ -187,36 +180,18 @@ function unload_stylesheet(href) {
 }
 
 async function load_font(font_name, href) {
-	console.log(`load_font ${font_name} ${href}`);
-	const existing = global_module_fonts.get(font_name);
-	if (existing) {
-		existing.users += 1;
-		console.log(`font ${font_name} now has ${existing.users} users`);
-		return { type: PRELOAD_TYPE_FONT, font_name };
+	if (global_module_fonts.has(font_name)) {
+		console.log(`font ${font_name} already loaded, skipping`);
+		return;
 	}
+
+	console.log(`load_font ${font_name} ${href}`);
 
 	const font = new FontFace(font_name, `url(${href})`);
 	await font.load();
 
 	document.fonts.add(font);
-
-	global_module_fonts.set(font_name, { font, users: 1 });
-	return { type: PRELOAD_TYPE_FONT, font_name };
-}
-
-function unload_font(font_name) {
-	console.log(`unload_font ${font_name}`);
-	const entry = global_module_fonts.get(font_name);
-	if (entry) {
-		entry.users -= 1;
-		console.log(`font ${font_name} now has ${entry.users} users`);
-
-		if (entry.users < 1) {
-			console.log(`unregistering font ${font_name}`);
-			document.fonts.delete(entry.font);
-			global_module_fonts.delete(font_name);
-		}
-	}
+	global_module_fonts.add(font_name);
 }
 // endregion
 
@@ -239,6 +214,9 @@ function unload_font(font_name) {
 	app.mount('body');
 
 	const test = await load_module('{{asset=js/modules/mod_test.js}}');
-	//setTimeout(() => unload_module(test), 3000);
+	const test_b = await load_module('{{asset=js/modules/mod_test_b.js}}');
+	setTimeout(() => unload_module(test), 3000);
+
+	setTimeout(() => unload_module(test_b), 7000);
 })();
 // endregion
