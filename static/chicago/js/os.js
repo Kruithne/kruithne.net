@@ -124,7 +124,7 @@ function unload_stylesheet(href) {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 
-	const state = app.mount('body');
+	app.mount('body');
 
 	const test = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
 	setTimeout(() => unload_module(test), 3000);
