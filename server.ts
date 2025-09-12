@@ -23,7 +23,13 @@ async function resolve_bootstrap_content(content: string | BunFile): Promise<str
 // region bootstrap
 const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 
-const global_sub_table = { cache_bust };
+const global_sub_table = {
+	cache_bust,
+
+	asset(src: string) {
+		return cache_bust(`/static/chicago/${src}`);
+	}
+};
 const cache = cache_http({
 	ttl: 24 * 60 * 60 * 1000, // 5 hours
 	max_size: 5 * 1024 * 1024, // 5 MB

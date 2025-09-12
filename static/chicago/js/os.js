@@ -1,4 +1,4 @@
-import { createApp, reactive } from '/{{cache_bust=static/chicago/js/lib/vue.esm.prod.js}}';
+import { createApp, reactive } from '{{asset=js/lib/vue.esm.prod.js}}';
 
 // region generic
 const EMPTY_ARRAY = new Array(0);
@@ -223,7 +223,7 @@ function unload_font(font_name) {
 
 	app.mount('body');
 
-	const test = await load_module('/{{cache_bust=static/chicago/js/modules/mod_test.js}}');
+	const test = await load_module('{{asset=js/modules/mod_test.js}}');
 	//setTimeout(() => unload_module(test), 3000);
 })();
 // endregion

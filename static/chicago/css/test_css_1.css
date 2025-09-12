@@ -1,6 +1,6 @@
 @font-face {
 	font-family: 'OCRAEXT';
-	src: url('/{{cache_bust=static/chicago/fonts/OCRAEXT.ttf}}') format('truetype');
+	src: url('{{asset=fonts/OCRAEXT.ttf}}') format('truetype');
 }
 
 body {
