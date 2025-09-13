@@ -237,9 +237,10 @@ async function load_stylesheet(href) {
 	const font_matches = [...css.matchAll(/font-family\s*:\s*([^;]+)/gi)];
 	for (const match of font_matches) {
 		const font_name = match[1].trim();
+		const font_params = font_name.includes('bold') ? { weight: 'bold' } : undefined;
 
 		console.log(`preloading font from css ${font_name}`);
-		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.woff2`));
+		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.woff2`, font_params));
 	}
 
 	await Promise.all(css_preload);
@@ -258,7 +259,7 @@ function unload_stylesheet(href) {
 	}
 }
 
-async function load_font(font_name, href) {
+async function load_font(font_name, href, params) {
 	if (global_module_fonts.has(font_name)) {
 		console.log(`font ${font_name} already loaded, skipping`);
 		return;
@@ -266,7 +267,7 @@ async function load_font(font_name, href) {
 
 	console.log(`load_font ${font_name} ${href}`);
 
-	const font = new FontFace(font_name, `url(${href})`);
+	const font = new FontFace(font_name, `url(${href})`, params);
 	await font.load();
 
 	document.fonts.add(font);

@@ -20,7 +20,7 @@ export default {
 				Hello, world! This is some content inside the window!
 			</c-ui-window>
 			<c-ui-window :title="module_id" :width="500" :height="500"/>
-			<c-ui-window title="Message Box"/>
+			<c-ui-window title="Message Box">Hello, world!</c-ui-window>
 		`
 	}
 };
