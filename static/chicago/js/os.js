@@ -63,8 +63,6 @@ function bmp_font_setup(font_name, font_sizes) {
 	observer.observe(document, { childList: true, subtree: true, attributes: true });
 	bmp_font_update();
 }
-
-bmp_font_setup('serife', [8, 10, 12, 14, 18, 24]);
 // endregion
 
 // region c_ui_button
@@ -346,6 +344,9 @@ async function load_font(font_name, href) {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
+
+	// bitmap fonts
+	bmp_font_setup('serife', [8, 10, 12, 14, 18, 24]);
 
 	await load_stylesheet('{{asset=css/global.css}}');
 
