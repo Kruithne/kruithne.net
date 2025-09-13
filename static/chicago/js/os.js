@@ -50,7 +50,10 @@ const c_ui_window = {
 	data() {
 		return {
 			pos_x: 0,
-			pos_y: 0
+			pos_y: 0,
+			is_dragging: false,
+			drag_offset_x: 0,
+			drag_offset_y: 0
 		}
 	},
 
@@ -77,11 +80,64 @@ const c_ui_window = {
 		}
 	},
 
+	methods: {
+		mouse_down(event) {
+			this.is_dragging = true;
+			this.drag_offset_x = event.clientX - this.pos_x;
+			this.drag_offset_y = event.clientY - this.pos_y;
+
+			console.log('mousedown');
+
+			const mouse_move = (e) => {
+				if (this.is_dragging) {
+					console.log('mousemove');
+					this.pos_x = e.clientX - this.drag_offset_x;
+					this.pos_y = e.clientY - this.drag_offset_y;
+				}
+			};
+
+			const mouse_up = () => {
+				this.is_dragging = false;
+				document.removeEventListener('mousemove', mouse_move);
+				document.removeEventListener('mouseup', mouse_up);
+			};
+
+			document.addEventListener('mousemove', mouse_move);
+			document.addEventListener('mouseup', mouse_up);
+			event.preventDefault();
+		},
+
+		touch_start(event) {
+			const touch = event.touches[0];
+			this.is_dragging = true;
+			this.drag_offset_x = touch.clientX - this.pos_x;
+			this.drag_offset_y = touch.clientY - this.pos_y;
+
+			const touch_move = (e) => {
+				if (this.is_dragging) {
+					const touch = e.touches[0];
+					this.pos_x = touch.clientX - this.drag_offset_x;
+					this.pos_y = touch.clientY - this.drag_offset_y;
+				}
+			};
+
+			const touch_end = () => {
+				this.is_dragging = false;
+				document.removeEventListener('touchmove', touch_move);
+				document.removeEventListener('touchend', touch_end);
+			};
+
+			document.addEventListener('touchmove', touch_move);
+			document.addEventListener('touchend', touch_end);
+			event.preventDefault();
+		}
+	},
+
 	template: `
 		<div
 			class="c-ui-window c-ui-face"
-			:style="{ top: pos_x + 'px', left: pos_y + 'px', width: width + 'px', height: height + 'px' }">
-			<div class="titlebar">
+			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }">
+			<div class="titlebar" @mousedown="mouse_down" @touchstart="touch_start">
 				<span class="title">{{ title }}</span>
 			</div>
 			<slot></slot>
