@@ -52,6 +52,7 @@ body {
 	border: 1px solid var(--ui-hilight);
 	border-bottom-color: var(--ui-darkshadow);
 	border-right-color: var(--ui-darkshadow);
+	pointer-events: none;
 }
 
 .c-ui-window {
