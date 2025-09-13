@@ -26,20 +26,19 @@ function generate_uuid() {
 // endregion
 
 // bitmap font scaling
-const font_sizes = [8, 10, 12, 14, 18, 24];
-function bmp_font_setup() {
+function bmp_font_setup(font_name, font_sizes) {
 	let css = `
-		[data-font-family="bmp_serife"] {
-			font-family: var(--serife-family, 'serife-8'), monospace;
-			font-size: calc(var(--serife-size, 8px) * 1.6);
+		[data-font-family="bmp_${font_name}"] {
+			font-family: var(--bmp-font-family, '${font_name}-8'), monospace;
+			font-size: calc(var(--bmp-font-size, 8px) * 1.6);
 		}
 	`;
 
 	for (const size of font_sizes) {
 		css += `
 			@font-face {
-				font-family: 'serife-${size}';
-				src: url(/static/chicago/fonts/serife${size}.ttf) format('ttf')
+				font-family: '${font_name}-${size}';
+				src: url(/static/chicago/fonts/${font_name}${size}.ttf) format('ttf')
 			}
 		`;
 	}
@@ -49,14 +48,14 @@ function bmp_font_setup() {
 	document.head.appendChild(style);
 
 	function bmp_font_update() {
-		for (const el of document.querySelectorAll('[data-font-family="bmp_serife"]')) {
+		for (const el of document.querySelectorAll(`[data-font-family="bmp_${font_name}"]`)) {
 			const req_size = parseFloat(el.getAttribute('data-font-size'));
 			const closest_size = font_sizes.reduce((prev, curr) => {
 				return Math.abs(curr - req_size) < Math.abs(prev - req_size) ? curr : prev;
 			});
 
-			el.style.setProperty('--serife-family', `serife-${closest_size}`);
-			el.style.setProperty('--serife-size', `${closest_size}px`);
+			el.style.setProperty('--bmp-font-family', `${font_name}-${closest_size}`);
+			el.style.setProperty('--bmp-font-size', `${closest_size}px`);
 		}
 	}
 
@@ -65,7 +64,7 @@ function bmp_font_setup() {
 	bmp_font_update();
 }
 
-bmp_font_setup();
+bmp_font_setup('serife', [8, 10, 12, 14, 18, 24]);
 // endregion
 
 // region c_ui_button
