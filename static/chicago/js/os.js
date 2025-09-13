@@ -25,7 +25,7 @@ function generate_uuid() {
 }
 // endregion
 
-// bitmap font scaling
+// region bitmap font scaling
 function bmp_font_setup(font_name, font_sizes) {
 	let css = `
 		[data-font-family="bmp_${font_name}"] {
