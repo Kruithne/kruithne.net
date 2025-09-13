@@ -24,7 +24,7 @@ export default {
 			<c-ui-button label="Cancel"/>
 			{{ module_id }}
 			<div id="test"></div>
-			<img src="{{asset=images/test_image.1.webp}}"/>
+			<img src="{{asset=images/test_image.webp}}"/>
 		`
 	}
 };
