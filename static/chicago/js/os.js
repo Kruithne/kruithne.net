@@ -36,7 +36,7 @@ const c_ui_button = {
 // endregion
 
 // region c_ui_window
-let global_is_first_window = false;
+let global_is_first_window = true;
 let global_win_sub_x = 45;
 let global_win_sub_y = 45;
 
