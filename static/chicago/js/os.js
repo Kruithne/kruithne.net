@@ -39,8 +39,6 @@ function bmp_font_setup() {
 	style.textContent = css;
 	document.head.appendChild(style);
 
-	const dpi_scale = window.devicePixelRatio || 1;
-
 	function bmp_font_update() {
 		for (const el of document.querySelectorAll('[data-font-family="bmp_serife"]')) {
 			const req_size = parseFloat(el.getAttribute('data-font-size'));
