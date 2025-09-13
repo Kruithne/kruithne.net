@@ -23,6 +23,10 @@
 	--ui-darkshadow: var(--vga-black); /* #000000 - dark shadow edges */
 }
 
+body {
+	user-select: none;
+}
+
  @media (max-width: 768px), (pointer: coarse) {
       body {
           transform: scale(0.8);
