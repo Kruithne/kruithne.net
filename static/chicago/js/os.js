@@ -25,46 +25,6 @@ function generate_uuid() {
 }
 // endregion
 
-// region bitmap font scaling
-function bmp_font_setup(font_name, font_sizes) {
-	let css = `
-		[data-font-family="bmp_${font_name}"] {
-			font-family: var(--bmp-font-family, '${font_name}-8'), monospace;
-			font-size: calc(var(--bmp-font-size, 8px) * 1.6);
-		}
-	`;
-
-	for (const size of font_sizes) {
-		css += `
-			@font-face {
-				font-family: '${font_name}-${size}';
-				src: url(/static/chicago/fonts/${font_name}${size}.ttf) format('ttf')
-			}
-		`;
-	}
-
-	const style = document.createElement('style');
-	style.textContent = css;
-	document.head.appendChild(style);
-
-	function bmp_font_update() {
-		for (const el of document.querySelectorAll(`[data-font-family="bmp_${font_name}"]`)) {
-			const req_size = parseFloat(el.getAttribute('data-font-size'));
-			const closest_size = font_sizes.reduce((prev, curr) => {
-				return Math.abs(curr - req_size) < Math.abs(prev - req_size) ? curr : prev;
-			});
-
-			el.style.setProperty('--bmp-font-family', `${font_name}-${closest_size}`);
-			el.style.setProperty('--bmp-font-size', `${closest_size}px`);
-		}
-	}
-
-	const observer = new MutationObserver(bmp_font_update);
-	observer.observe(document, { childList: true, subtree: true, attributes: true });
-	bmp_font_update();
-}
-// endregion
-
 // region c_ui_button
 const c_ui_button = {
 	props: {
@@ -127,8 +87,6 @@ const c_ui_window = {
 	template: `
 		<div
 			class="c-ui-window c-ui-face"
-			data-font-family="bmp_serife"
-			data-font-size="8"
 			:style="{ top: pos_x + 'px', left: pos_y + 'px', width: width + 'px', height: height + 'px' }">
 			<div class="titlebar">
 				<span class="title">{{ title }}</span>
@@ -174,6 +132,9 @@ async function load_module(module_path) {
 
 				switch (ext_lower) {
 					case 'ttf':
+					case 'otf':
+					case 'woff':
+					case 'woff2':
 						preloads.push(load_font(href_base, href));
 						break;
 
@@ -199,17 +160,6 @@ async function load_module(module_path) {
 			for (const match of image_matches) {
 				console.log(`preloading template image ${match[1]}`);
 				preloads.push(preload_image(match[1]));
-			}
-
-			const font_matches = [...mod.component.template.matchAll(/data-font-family\s*=\s*"([^"]+)"/gi)];
-			for (const match of font_matches) {
-				const font_name = match[1];
-
-				if (font_name.startsWith('bmp_'))
-					continue;
-
-				console.log(`preload template font ${font_name}`);
-				preloads.push(load_font(font_name, `/static/chicago/fonts/${font_name}.ttf`));
 			}
 		}
 
@@ -288,12 +238,8 @@ async function load_stylesheet(href) {
 	for (const match of font_matches) {
 		const font_name = match[1].trim();
 
-		// skip bitmap fonts (handled dynamically)
-		if (font_name.startsWith('bmp_'))
-			continue;
-
 		console.log(`preloading font from css ${font_name}`);
-		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.ttf`));
+		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.woff2`));
 	}
 
 	await Promise.all(css_preload);
@@ -344,9 +290,6 @@ async function load_font(font_name, href) {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
-
-	// bitmap fonts
-	bmp_font_setup('serife', [8, 10, 12, 14, 18, 24]);
 
 	await load_stylesheet('{{asset=css/global.css}}');
 

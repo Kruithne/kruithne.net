@@ -41,6 +41,8 @@
 .c-ui-window {
 	position: absolute;
 	padding: 2px;
+	font-family: w95font;
+	font-size: 16px;
 }
 
 .c-ui-window .titlebar {
