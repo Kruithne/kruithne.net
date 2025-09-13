@@ -85,7 +85,7 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 	if (stat.isDirectory())
 		return HTTP_STATUS_CODE.Unauthorized_401;
 
-	await Bun.sleep(400); // todo: remove me
+	//await Bun.sleep(400); // todo: remove me
 
 	const ext_idx = file_path.lastIndexOf('.');
 	if (ext_idx > -1) {

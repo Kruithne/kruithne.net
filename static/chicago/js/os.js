@@ -19,13 +19,69 @@ function ext_split(file) {
 // region c_ui_button
 const c_ui_button = {
 	props: {
-		label: {
-			type: String,
-			default: 'OK'
+		label: { type: String, default: 'OK' }
+	},
+
+	template: `<input class="c-ui-button c-ui-face" type="button" :value="label"/>`
+};
+// endregion
+
+// region c_ui_window
+let global_is_first_window = false;
+let global_win_sub_x = 45;
+let global_win_sub_y = 45;
+
+const c_ui_window = {
+	props: {
+		width: { type: Number, default: 200 },
+		height: { type: Number, default: 150 },
+		title: { type: String, default: 'New Window' }
+	},
+
+	data() {
+		return {
+			pos_x: 0,
+			pos_y: 0
 		}
 	},
 
-	template: `<input type="button" :value="label"/>`
+	created() {
+		if (global_is_first_window) {
+			this.pos_x = global_win_sub_x;
+			this.pos_y = global_win_sub_y;
+			global_is_first_window = false;
+		} else {
+			let x = global_win_sub_x + 24;
+			let y = global_win_sub_y + 24;
+
+			if ((x + this.width) > window.visualViewport.width || (y + this.height) > window.visualViewport.height) {
+				console.log({
+					x, y,
+					viewportWidth: window.visualViewport.width,
+					viewportHeight: window.visualViewport.height,
+					width: this.width,
+					height: this.height
+				});
+				x = 0;
+				y = 0;
+			}
+
+			// 8-pixel quantization
+			x = (x / 8) * 8;
+			y = (y / 8) * 8;
+
+			this.pos_x = global_win_sub_x = x;
+			this.pos_y = global_win_sub_y = y;
+		}
+	},
+
+	template: `
+		<div class="c-ui-window c-ui-face" :style="{ top: pos_x + 'px', left: pos_y + 'px', width: width + 'px', height: height + 'px' }">
+			<div class="titlebar">
+				<span class="title">{{ title }}</span>
+			</div>
+		</div>
+	`
 };
 // endregion
 
@@ -217,6 +273,9 @@ async function load_font(font_name, href) {
 	
 	// register components
 	app.component('c-ui-button', c_ui_button);
+	app.component('c-ui-window', c_ui_window);
+
+	await load_stylesheet('{{asset=css/global.css}}');
 
 	app.mount('body');
 

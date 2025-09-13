@@ -1,8 +1,4 @@
 export default {
-	preload: [
-		'{{asset=css/test_css_1.css}}'
-	],
-
 	component: {
 		inject: ['sys_registry'],
 
@@ -20,11 +16,9 @@ export default {
 		},
 
 		template: `
-			<h1>{{ test }}</h1>
-			<c-ui-button label="Cancel"/>
-			{{ module_id }}
-			<div id="test"></div>
-			<img src="{{asset=images/test_image.webp}}"/>
+			<c-ui-window :title="module_id"/>
+			<c-ui-window :title="module_id" :width="500" :height="500"/>
+			<c-ui-window :title="module_id"/>
 		`
 	}
 };

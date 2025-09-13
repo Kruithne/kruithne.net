@@ -1,0 +1,36 @@
+:root {
+	/* VGA 16 */
+	--vga-black: #000000;
+	--vga-maroon: #800000;
+	--vga-green: #008000;
+	--vga-olive: #808000;
+	--vga-navy: #000080;
+	--vga-purple: #800080;
+	--vga-teal: #008080;
+	--vga-silver: #c0c0c0;
+	--vga-gray: #808080;
+	--vga-red: #ff0000;
+	--vga-lime: #00ff00;
+	--vga-yellow: #ffff00;
+	--vga-blue: #0000ff;
+	--vga-fuchsia: #ff00ff;
+	--vga-aqua: #00ffff;
+	--vga-white: #ffffff;
+
+	--ui-face: var(--vga-silver);      /* #c0c0c0 - button face, window background */
+	--ui-shadow: var(--vga-gray);      /* #808080 - shadow edges */
+	--ui-hilight: var(--vga-white);    /* #ffffff - highlight edges */
+	--ui-darkshadow: var(--vga-black); /* #000000 - dark shadow edges */
+}
+
+.c-ui-face {
+	border: 1px solid var(--ui-face);
+	border-bottom-color: var(--ui-shadow);
+	border-right-color: var(--ui-shadow);
+	box-shadow: 0 -1px 0 0 var(--ui-hilight), -1px 0 0 0 var(--ui-hilight), 0 1px 0 0 var(--ui-darkshadow), 1px 0 0 0 var(--ui-darkshadow);
+	background: var(--ui-face);
+}
+
+.c-ui-window {
+	position: absolute;
+}
