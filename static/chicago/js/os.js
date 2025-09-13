@@ -80,6 +80,7 @@ const c_ui_window = {
 			<div class="titlebar">
 				<span class="title">{{ title }}</span>
 			</div>
+			<slot></slot>
 		</div>
 	`
 };
