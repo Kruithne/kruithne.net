@@ -42,8 +42,6 @@ const sys_registry = reactive({
 // endregion
 
 // region modules
-const PRELOAD_TYPE_STYLESHEET = 0x1;
-
 const global_module_meta = new Map();
 const global_module_fonts = new Set();
 
