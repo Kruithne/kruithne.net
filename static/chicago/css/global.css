@@ -23,6 +23,13 @@
 	--ui-darkshadow: var(--vga-black); /* #000000 - dark shadow edges */
 }
 
+ @media (max-width: 768px), (pointer: coarse) {
+      body {
+          transform: scale(0.8);
+          transform-origin: top left;
+      }
+  }
+
 .c-ui-face {
 	border: 1px solid var(--ui-face);
 	border-bottom-color: var(--ui-shadow);
@@ -33,4 +40,15 @@
 
 .c-ui-window {
 	position: absolute;
+	padding: 2px;
+}
+
+.c-ui-window .titlebar {
+	background-color: var(--vga-navy);
+	color: var(--vga-white);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding: 4px 2px 5px 3px;
+	font-weight: bold;
 }

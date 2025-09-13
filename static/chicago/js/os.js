@@ -16,6 +16,51 @@ function ext_split(file) {
 }
 // endregion
 
+// bitmap font scaling
+const font_sizes = [8, 10, 12, 14, 18, 24];
+function bmp_font_setup() {
+	let css = `
+		[data-font-family="bmp_serife"] {
+			font-family: var(--serife-family, 'serife-8'), monospace;
+			font-size: calc(var(--serife-size, 8px) * 1.6);
+		}
+	`;
+
+	for (const size of font_sizes) {
+		css += `
+			@font-face {
+				font-family: 'serife-${size}';
+				src: url(/static/chicago/fonts/serife${size}.ttf) format('ttf')
+			}
+		`;
+	}
+
+	const style = document.createElement('style');
+	style.textContent = css;
+	document.head.appendChild(style);
+
+	const dpi_scale = window.devicePixelRatio || 1;
+
+	function bmp_font_update() {
+		for (const el of document.querySelectorAll('[data-font-family="bmp_serife"]')) {
+			const req_size = parseFloat(el.getAttribute('data-font-size'));
+			const closest_size = font_sizes.reduce((prev, curr) => {
+				return Math.abs(curr - req_size) < Math.abs(prev - req_size) ? curr : prev;
+			});
+
+			el.style.setProperty('--serife-family', `serife-${closest_size}`);
+			el.style.setProperty('--serife-size', `${closest_size}px`);
+		}
+	}
+
+	const observer = new MutationObserver(bmp_font_update);
+	observer.observe(document, { childList: true, subtree: true, attributes: true });
+	bmp_font_update();
+}
+
+bmp_font_setup();
+// endregion
+
 // region c_ui_button
 const c_ui_button = {
 	props: {
@@ -76,7 +121,11 @@ const c_ui_window = {
 	},
 
 	template: `
-		<div class="c-ui-window c-ui-face" :style="{ top: pos_x + 'px', left: pos_y + 'px', width: width + 'px', height: height + 'px' }">
+		<div
+			class="c-ui-window c-ui-face"
+			data-font-family="bmp_serife"
+			data-font-size="8"
+			:style="{ top: pos_x + 'px', left: pos_y + 'px', width: width + 'px', height: height + 'px' }">
 			<div class="titlebar">
 				<span class="title">{{ title }}</span>
 			</div>
@@ -223,6 +272,11 @@ async function load_stylesheet(href) {
 	const font_matches = [...css.matchAll(/font-family\s*:\s*([^;]+)/gi)];
 	for (const match of font_matches) {
 		const font_name = match[1].trim();
+
+		// skip bitmap fonts (handled dynamically)
+		if (font_name.startsWith('bmp_'))
+			continue;
+
 		console.log(`preloading font from css ${font_name}`);
 		css_preload.push(load_font(font_name, `/static/chicago/fonts/${font_name}.ttf`));
 	}
