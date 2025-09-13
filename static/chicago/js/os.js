@@ -202,6 +202,17 @@ async function load_module(module_path) {
 				console.log(`preloading template image ${match[1]}`);
 				preloads.push(preload_image(match[1]));
 			}
+
+			const font_matches = [...mod.component.template.matchAll(/data-font-family\s*=\s*"([^"]+)"/gi)];
+			for (const match of font_matches) {
+				const font_name = match[1];
+
+				if (font_name.startsWith('bmp_'))
+					continue;
+
+				console.log(`preload template font ${font_name}`);
+				preloads.push(load_font(font_name, `/static/chicago/fonts/${font_name}.ttf`));
+			}
 		}
 
 		await Promise.all(preloads);
