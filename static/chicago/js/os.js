@@ -14,6 +14,15 @@ function ext_split(file) {
 
 	return [file.slice(0, idx), file.slice(idx + 1)];
 }
+
+function generate_uuid() {
+	if (crypto?.randomUUID)
+		return crypto.randomUUID();
+
+	return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+		(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	);
+}
 // endregion
 
 // bitmap font scaling
@@ -151,7 +160,7 @@ const global_module_fonts = new Set();
 
 async function load_module(module_path) {
 	try {
-		const module_id = crypto.randomUUID();
+		const module_id = generate_uuid();
 		console.log(`load_module ${module_path} ${module_id}`);
 
 		const mod = (await import(module_path)).default;
