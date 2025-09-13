@@ -39,8 +39,19 @@ body {
 	border: 1px solid var(--ui-face);
 	border-bottom-color: var(--ui-shadow);
 	border-right-color: var(--ui-shadow);
-	box-shadow: 0 -1px 0 0 var(--ui-hilight), -1px 0 0 0 var(--ui-hilight), 0 1px 0 0 var(--ui-darkshadow), 1px 0 0 0 var(--ui-darkshadow);
 	background: var(--ui-face);
+	z-index: 2;
+}
+
+.c-ui-face::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	margin: -2px;
+	z-index: 1;
+	border: 1px solid var(--ui-hilight);
+	border-bottom-color: var(--ui-darkshadow);
+	border-right-color: var(--ui-darkshadow);
 }
 
 .c-ui-window {
