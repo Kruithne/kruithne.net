@@ -64,13 +64,6 @@ const c_ui_window = {
 			let y = global_win_sub_y + 24;
 
 			if ((x + this.width) > window.visualViewport.width || (y + this.height) > window.visualViewport.height) {
-				console.log({
-					x, y,
-					viewportWidth: window.visualViewport.width,
-					viewportHeight: window.visualViewport.height,
-					width: this.width,
-					height: this.height
-				});
 				x = 0;
 				y = 0;
 			}
