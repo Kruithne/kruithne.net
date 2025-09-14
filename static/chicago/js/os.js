@@ -86,11 +86,8 @@ const c_ui_window = {
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
 
-			console.log('mousedown');
-
 			const mouse_move = (e) => {
 				if (this.is_dragging) {
-					console.log('mousemove');
 					this.pos_x = e.clientX - this.drag_offset_x;
 					this.pos_y = e.clientY - this.drag_offset_y;
 				}
