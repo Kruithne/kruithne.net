@@ -68,12 +68,17 @@ body {
 .c-ui-window .titlebar {
 	font-family: w95font-bold;
 	font-size: 16px;
-	background-color: var(--vga-navy);
-	color: var(--vga-white);
+	background-color: var(--vga-gray);
+	color: var(--vga-silver);
 	padding-left: 5px;
 	display: flex;
 	align-items: center;
 	height: 25px;
+}
+
+.c-ui-window.active .titlebar {
+	background-color: var(--vga-navy);
+	color: var(--vga-white);
 }
 
 .c-ui-window .titlebar .title {

@@ -41,6 +41,8 @@ let global_win_sub_x = 45;
 let global_win_sub_y = 45;
 
 const c_ui_window = {
+	inject: ['sys_state'],
+
 	props: {
 		width: { type: Number, default: 200 },
 		height: { type: Number, default: 150 },
@@ -81,7 +83,15 @@ const c_ui_window = {
 	},
 
 	methods: {
-		mouse_down(event) {
+		window_mouse_down(event) {
+			this.sys_state.active_window = this;
+		},
+
+		window_touch_start(event) {
+			this.sys_state.active_window = this;
+		},
+
+		titlebar_mouse_down(event) {
 			this.is_dragging = true;
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
@@ -104,7 +114,7 @@ const c_ui_window = {
 			event.preventDefault();
 		},
 
-		touch_start(event) {
+		titlebar_touch_start(event) {
 			const touch = event.touches[0];
 			this.is_dragging = true;
 			this.drag_offset_x = touch.clientX - this.pos_x;
@@ -130,11 +140,20 @@ const c_ui_window = {
 		}
 	},
 
+	computed: {
+		is_active_win() {
+			return this.sys_state.active_window === this;
+		}
+	},
+
 	template: `
 		<div
 			class="c-ui-window c-ui-raised"
-			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }">
-			<div class="titlebar" @mousedown="mouse_down" @touchstart="touch_start">
+			:class="{ active: is_active_win }"
+			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }"
+			@mousedown.capture="window_mouse_down" @touchstart.capture="window_touch_start"
+		>
+			<div class="titlebar" @mousedown="titlebar_mouse_down" @touchstart="titlebar_touch_start">
 				<span class="title">{{ title }}</span>
 			</div>
 			<slot></slot>
@@ -145,7 +164,8 @@ const c_ui_window = {
 
 // region sys_state
 const sys_state = reactive({
-	modules: []
+	modules: [],
+	active_window: null
 });
 // endregion
 
@@ -366,6 +386,7 @@ const mod_taskbar = {
 	});
 	
 	// register globals
+	app.provide('sys_state', sys_state);
 	app.provide('sys_registry', srvc_registry);
 	app.provide('srvc_taskbar', srvc_taskbar);
 	
@@ -380,6 +401,7 @@ const mod_taskbar = {
 
 	app.mount('body');
 
+	await load_module('{{asset=js/modules/mod_calc.js}}'); // temp
 	await load_module('{{asset=js/modules/mod_calc.js}}'); // temp
 })();
 // endregion
