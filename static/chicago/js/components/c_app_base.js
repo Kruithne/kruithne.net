@@ -3,7 +3,7 @@ export const c_app_base = {
 
 	props: {
 		module: { type: Object, required: false },
-		module_z_base: { type: Number, default: 100 }
+		z_idx_base: { type: Number, default: 100 }
 	},
 
 	data() {
@@ -33,12 +33,12 @@ export const c_app_base = {
 			<c-ui-window
 				v-for="(win, idx) in windows"
 				:key="idx"
-				:style="{ zIndex: module_z_base + (windows.length - idx) }"
+				:style="{ zIndex: z_idx_base + (windows.length - idx) }"
 				:width="win.width"
 				:height="win.height"
 				:title="win.title"
 				:module="module"
-				:window_index="idx"
+				:win_idx="idx"
 			>
 				<div v-html="win.content"></div>
 			</c-ui-window>

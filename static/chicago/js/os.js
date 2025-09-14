@@ -49,7 +49,7 @@ const c_ui_window = {
 		height: { type: Number, default: 150 },
 		title: { type: String, default: 'New Window' },
 		module: { type: Object, required: false },
-		window_index: { type: Number, default: 0 }
+		win_idx: { type: Number, default: 0 }
 	},
 
 	data() {
@@ -94,7 +94,7 @@ const c_ui_window = {
 		tb_pointerdown_capture(event) {
 			if (!this.is_active_win)
 				return;
-			
+
 			this.is_dragging = true;
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
@@ -120,7 +120,7 @@ const c_ui_window = {
 
 	computed: {
 		is_active_win() {
-			return this.module && this.sys_state.active_module === this.module && this.window_index === 0;
+			return this.module && this.sys_state.active_module === this.module && this.win_idx === 0;
 		}
 	},
 
@@ -381,7 +381,7 @@ const mod_taskbar = {
 
 		template: `
 			<div v-for="(mod, idx) in modules" :style="{ zIndex: (modules.length - idx) * 100 }" :key="mod.id">
-				<component :is="mod.component" v-bind="{ ...mod.props, module: mod, module_z_base: (modules.length - idx) * 100 }"/>
+				<component :is="mod.component" v-bind="{ ...mod.props, module: mod, z_idx_base: (modules.length - idx) * 100 }"/>
 			</div>
 		`
 	});
