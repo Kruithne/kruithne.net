@@ -37,6 +37,12 @@ body {
 }
 /* endregion */
 
+/* region module */
+.m-container {
+	position: absolute;
+}
+/* endregion */
+
 /* region theme */
 .c-ui-raised {
 	border: 1px solid var(--ui-face);

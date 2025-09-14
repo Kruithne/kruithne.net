@@ -385,8 +385,16 @@ const mod_taskbar = {
 		},
 
 		template: `
-			<div v-for="(mod, idx) in modules" :style="{ zIndex: (modules.length - idx) * 100 }" :key="mod.id">
-				<component :is="mod.component" v-bind="{ ...mod.props, module: mod, z_idx_base: (modules.length - idx) * 100 }"/>
+			<div
+				v-for="(mod, idx) in modules"
+				:style="{ zIndex: (modules.length - idx) * 100 }"
+				:key="mod.id"
+				class="m-container"
+			>
+				<component
+					:is="mod.component"
+					v-bind="{ ...mod.props, module: mod, z_idx_base: (modules.length - idx) * 100 }"
+				/>
 			</div>
 		`
 	});
