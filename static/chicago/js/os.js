@@ -149,8 +149,8 @@ const sys_state = reactive({
 });
 // endregion
 
-// region sys_registry
-const sys_registry = reactive({
+// region srvc_registry
+const srvc_registry = reactive({
 	key: 'test_value'
 });
 // endregion
@@ -366,7 +366,7 @@ const mod_taskbar = {
 	});
 	
 	// register globals
-	app.provide('sys_registry', sys_registry);
+	app.provide('sys_registry', srvc_registry);
 	app.provide('srvc_taskbar', srvc_taskbar);
 	
 	// register components
