@@ -155,18 +155,32 @@ const sys_registry = reactive({
 });
 // endregion
 
+// region srvc_taskbar
+const srvc_taskbar = reactive({
+	apps: [],
+
+	register(app) {
+		this.apps.push(app);
+		console.log(`registered taskbar app ${app.title}`);
+	}
+});
+// endregion
+
 // region modules
 const global_module_meta = new Map();
 const global_module_fonts = new Set();
 
-async function load_module(module_path) {
+async function load_module(mod) {
 	try {
 		const module_id = generate_uuid();
-		console.log(`load_module ${module_path} ${module_id}`);
+		if (typeof mod === 'string') {
+			console.log(`load_module ${mod} ${module_id}`);
+			mod = (await import(mod)).default;
+		} else {
+			console.log(`load module (internal module) ${module_id}`);
+		}
 
-		const mod = (await import(module_path)).default;
 		const preloads = [];
-
 		if (mod.preload) {
 			const tracked_css = [];
 
@@ -219,7 +233,7 @@ async function load_module(module_path) {
 		
 		return module_id;
 	} catch (e) {
-		console.error('failed to load module %s', module_path);
+		console.error('failed to load module %s', mod);
 		console.error(e);
 	}
 }
@@ -321,6 +335,26 @@ async function load_font(font_name, href, params) {
 }
 // endregion
 
+// region mod_taskbar
+const mod_taskbar = {
+	component: {
+		inject: ['srvc_taskbar'],
+
+		data() {
+			return {
+				title: 'mod_taskbar',
+			}
+		},
+
+		template: `
+			<div id="ui-taskbar">
+				<input type="button" v-for="app in srvc_taskbar.apps" :value="app.title"/>
+			</div>
+		`
+	}
+};
+// endregion
+
 // region bootstrap
 (async () => {
 	const app = createApp({
@@ -331,17 +365,21 @@ async function load_font(font_name, href, params) {
 		template: `<component v-for="mod in modules" :key="mod.id" :is="mod.component" v-bind="mod.props"/>`
 	});
 	
-	// register stores
+	// register globals
 	app.provide('sys_registry', sys_registry);
+	app.provide('srvc_taskbar', srvc_taskbar);
 	
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
 
-	await load_stylesheet('{{asset=css/global.css}}');
+	await Promise.all([
+		load_stylesheet('{{asset=css/global.css}}'),
+		load_module(mod_taskbar)
+	]);
 
 	app.mount('body');
 
-	const test = await load_module('{{asset=js/modules/mod_test.js}}');
+	await load_module('{{asset=js/modules/mod_calc.js}}'); // temp
 })();
 // endregion
