@@ -57,7 +57,7 @@ const c_ui_window = {
 		}
 	},
 
-	created() {
+	mounted() {
 		if (global_is_first_window) {
 			this.pos_x = global_win_sub_x;
 			this.pos_y = global_win_sub_y;
@@ -65,16 +65,16 @@ const c_ui_window = {
 		} else {
 			let x = global_win_sub_x + 24;
 			let y = global_win_sub_y + 24;
-
+	
 			if ((x + this.width) > window.visualViewport.width || (y + this.height) > window.visualViewport.height) {
 				x = 0;
 				y = 0;
 			}
-
+	
 			// 8-pixel quantization
 			x = (x / 8) * 8;
 			y = (y / 8) * 8;
-
+	
 			this.pos_x = global_win_sub_x = x;
 			this.pos_y = global_win_sub_y = y;
 		}
