@@ -83,59 +83,30 @@ const c_ui_window = {
 	},
 
 	methods: {
-		window_mouse_down(event) {
+		window_pointer_down(event) {
 			this.sys_state.active_window = this;
 		},
 
-		window_touch_start(event) {
-			this.sys_state.active_window = this;
-		},
-
-		titlebar_mouse_down(event) {
+		titlebar_pointer_down(event) {
 			this.is_dragging = true;
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
 
-			const mouse_move = (e) => {
+			const pointer_move = (e) => {
 				if (this.is_dragging) {
 					this.pos_x = e.clientX - this.drag_offset_x;
 					this.pos_y = e.clientY - this.drag_offset_y;
 				}
 			};
 
-			const mouse_up = () => {
+			const pointer_up = () => {
 				this.is_dragging = false;
-				document.removeEventListener('mousemove', mouse_move);
-				document.removeEventListener('mouseup', mouse_up);
+				document.removeEventListener('pointermove', pointer_move);
+				document.removeEventListener('pointerup', pointer_up);
 			};
 
-			document.addEventListener('mousemove', mouse_move);
-			document.addEventListener('mouseup', mouse_up);
-			event.preventDefault();
-		},
-
-		titlebar_touch_start(event) {
-			const touch = event.touches[0];
-			this.is_dragging = true;
-			this.drag_offset_x = touch.clientX - this.pos_x;
-			this.drag_offset_y = touch.clientY - this.pos_y;
-
-			const touch_move = (e) => {
-				if (this.is_dragging) {
-					const touch = e.touches[0];
-					this.pos_x = touch.clientX - this.drag_offset_x;
-					this.pos_y = touch.clientY - this.drag_offset_y;
-				}
-			};
-
-			const touch_end = () => {
-				this.is_dragging = false;
-				document.removeEventListener('touchmove', touch_move);
-				document.removeEventListener('touchend', touch_end);
-			};
-
-			document.addEventListener('touchmove', touch_move);
-			document.addEventListener('touchend', touch_end);
+			document.addEventListener('pointermove', pointer_move);
+			document.addEventListener('pointerup', pointer_up);
 			event.preventDefault();
 		}
 	},
@@ -151,9 +122,9 @@ const c_ui_window = {
 			class="c-ui-window c-ui-raised"
 			:class="{ active: is_active_win }"
 			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }"
-			@mousedown.capture="window_mouse_down" @touchstart.capture="window_touch_start"
+			@pointerdown.capture="window_pointer_down"
 		>
-			<div class="titlebar" @mousedown="titlebar_mouse_down" @touchstart="titlebar_touch_start">
+			<div class="titlebar" @pointerdown="titlebar_pointer_down">
 				<span class="title">{{ title }}</span>
 			</div>
 			<slot></slot>
