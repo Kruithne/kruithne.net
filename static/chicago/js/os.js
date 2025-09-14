@@ -329,7 +329,7 @@ async function load_font(font_name, href, params) {
 // region mod_taskbar
 const mod_taskbar = {
 	component: {
-		inject: ['srvc_taskbar'],
+		inject: ['srvc_taskbar', 'sys_state'],
 
 		data() {
 			return {
@@ -337,8 +337,14 @@ const mod_taskbar = {
 			}
 		},
 
+		methods: {
+			pointerdown_capture(event) {
+				this.sys_state.active_window = null;
+			}
+		},
+
 		template: `
-			<div id="ui-taskbar">
+			<div id="ui-taskbar" @pointerdown.capture="pointerdown_capture">
 				<input type="button" v-for="app in srvc_taskbar.apps" :value="app.title"/>
 			</div>
 		`
