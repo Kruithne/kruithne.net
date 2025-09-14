@@ -403,7 +403,6 @@ const mod_taskbar = {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
-	app.component('c-app-base', c_app_base);
 
 	await Promise.all([
 		load_stylesheet('{{asset=css/global.css}}'),
