@@ -350,6 +350,11 @@ const mod_taskbar = {
 	component: {
 		inject: ['srvc_taskbar', 'sys_state'],
 
+		props: {
+			module: { type: Object, required: false },
+			z_idx_base: { type: Number, default: 100 }
+		},
+
 		data() {
 			return {
 				title: 'mod_taskbar',
