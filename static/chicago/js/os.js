@@ -92,6 +92,9 @@ const c_ui_window = {
 		},
 
 		tb_pointerdown_capture(event) {
+			if (!this.is_active_win)
+				return;
+			
 			this.is_dragging = true;
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
