@@ -46,7 +46,7 @@ body {
 	z-index: 2;
 }
 
-.c-ui-raise::before {
+.c-ui-raised::before {
 	content: '';
 	position: absolute;
 	inset: 0;
