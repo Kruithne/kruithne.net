@@ -1,4 +1,5 @@
 import { createApp, reactive } from '{{asset=js/lib/vue.esm.prod.js}}';
+import { c_app_base } from '{{asset=js/components/c_app_base.js}}';
 
 // region generic
 const EMPTY_ARRAY = new Array(0);
@@ -46,7 +47,9 @@ const c_ui_window = {
 	props: {
 		width: { type: Number, default: 200 },
 		height: { type: Number, default: 150 },
-		title: { type: String, default: 'New Window' }
+		title: { type: String, default: 'New Window' },
+		module: { type: Object, required: false },
+		window_index: { type: Number, default: 0 }
 	},
 
 	data() {
@@ -84,7 +87,8 @@ const c_ui_window = {
 
 	methods: {
 		win_pointerdown_capture(event) {
-			this.sys_state.active_window = this;
+			if (this.module)
+				this.sys_state.mod_activate(this.module);
 		},
 
 		tb_pointerdown_capture(event) {
@@ -113,7 +117,7 @@ const c_ui_window = {
 
 	computed: {
 		is_active_win() {
-			return this.sys_state.active_window === this;
+			return this.module && this.sys_state.active_module === this.module && this.window_index === 0;
 		}
 	},
 
@@ -133,10 +137,22 @@ const c_ui_window = {
 };
 // endregion
 
+
 // region sys_state
 const sys_state = reactive({
 	modules: [],
-	active_window: null
+
+	mod_activate(mod) {
+		const mod_idx = this.modules.findIndex(m => m.id === mod.id);
+		if (mod_idx !== -1) {
+			this.modules.splice(mod_idx, 1);
+			this.modules.unshift(mod);
+		}
+	},
+
+	get active_module() {
+		return this.modules[0] || null;
+	}
 });
 // endregion
 
@@ -339,7 +355,8 @@ const mod_taskbar = {
 
 		methods: {
 			pointerdown_capture(event) {
-				this.sys_state.active_window = null;
+				if (this.module)
+					this.sys_state.mod_activate(this.module);
 			}
 		},
 
@@ -359,7 +376,11 @@ const mod_taskbar = {
 			return sys_state;
 		},
 
-		template: `<component v-for="mod in modules" :key="mod.id" :is="mod.component" v-bind="mod.props"/>`
+		template: `
+			<div v-for="(mod, idx) in modules" :style="{ zIndex: (modules.length - idx) * 100 }" :key="mod.id">
+				<component :is="mod.component" v-bind="{ ...mod.props, module: mod, module_z_base: (modules.length - idx) * 100 }"/>
+			</div>
+		`
 	});
 	
 	// register globals
@@ -370,6 +391,7 @@ const mod_taskbar = {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
+	app.component('c-app-base', c_app_base);
 
 	await Promise.all([
 		load_stylesheet('{{asset=css/global.css}}'),

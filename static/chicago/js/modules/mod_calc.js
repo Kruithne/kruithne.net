@@ -1,6 +1,8 @@
+import { c_app_base } from '../components/c_app_base.js';
+
 export default {
 	component: {
-		inject: ['srvc_taskbar'],
+		extends: c_app_base,
 
 		data() {
 			return {
@@ -8,14 +10,20 @@ export default {
 			}
 		},
 
-		created() {
-			this.srvc_taskbar.register(this);
-		},
+		mounted() {
+			this.create_window({
+				width: 276,
+				height: 271,
+				title: this.title,
+				content: 'I am a calculator.'
+			});
 
-		template: `
-			<c-ui-window :title="title" :width="276" :height="271">
-				I am a calculator.
-			</c-ui-window>
-		`
+			this.create_window({
+				width: 300,
+				height: 200,
+				title: 'Calculator 2',
+				content: 'I am another calculator window.'
+			});
+		}
 	}
 };
