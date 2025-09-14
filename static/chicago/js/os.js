@@ -348,16 +348,12 @@ async function load_font(font_name, href, params) {
 // region mod_taskbar
 const mod_taskbar = {
 	component: {
+		extends: c_app_base,
+
 		inject: ['srvc_taskbar', 'sys_state'],
-
-		props: {
-			module: { type: Object, required: false },
-			z_idx_base: { type: Number, default: 100 }
-		},
-
 		data() {
 			return {
-				title: 'mod_taskbar',
+				title: 'Taskbar',
 			}
 		},
 
