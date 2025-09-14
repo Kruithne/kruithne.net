@@ -2,7 +2,7 @@ export const c_app_base = {
 	inject: ['srvc_taskbar'],
 
 	props: {
-		module: { type: Object, required: false },
+		module: { type: Object, required: true },
 		z_idx_base: { type: Number, default: 100 }
 	},
 
