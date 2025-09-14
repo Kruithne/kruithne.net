@@ -31,7 +31,7 @@ const c_ui_button = {
 		label: { type: String, default: 'OK' }
 	},
 
-	template: `<input class="c-ui-button c-ui-face" type="button" :value="label"/>`
+	template: `<input class="c-ui-button c-ui-raised" type="button" :value="label"/>`
 };
 // endregion
 
@@ -132,7 +132,7 @@ const c_ui_window = {
 
 	template: `
 		<div
-			class="c-ui-window c-ui-face"
+			class="c-ui-window c-ui-raised"
 			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }">
 			<div class="titlebar" @mousedown="mouse_down" @touchstart="touch_start">
 				<span class="title">{{ title }}</span>

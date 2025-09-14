@@ -35,7 +35,7 @@ body {
       }
   }
 
-.c-ui-face {
+.c-ui-raised {
 	border: 1px solid var(--ui-face);
 	border-bottom-color: var(--ui-shadow);
 	border-right-color: var(--ui-shadow);
@@ -43,7 +43,7 @@ body {
 	z-index: 2;
 }
 
-.c-ui-face::before {
+.c-ui-raise::before {
 	content: '';
 	position: absolute;
 	inset: 0;
