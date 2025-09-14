@@ -83,30 +83,30 @@ const c_ui_window = {
 	},
 
 	methods: {
-		window_pointer_down(event) {
+		win_pointerdown_capture(event) {
 			this.sys_state.active_window = this;
 		},
 
-		titlebar_pointer_down(event) {
+		tb_pointerdown_capture(event) {
 			this.is_dragging = true;
 			this.drag_offset_x = event.clientX - this.pos_x;
 			this.drag_offset_y = event.clientY - this.pos_y;
 
-			const pointer_move = (e) => {
+			const pointermove = (e) => {
 				if (this.is_dragging) {
 					this.pos_x = e.clientX - this.drag_offset_x;
 					this.pos_y = e.clientY - this.drag_offset_y;
 				}
 			};
 
-			const pointer_up = () => {
+			const pointerup = () => {
 				this.is_dragging = false;
-				document.removeEventListener('pointermove', pointer_move);
-				document.removeEventListener('pointerup', pointer_up);
+				document.removeEventListener('pointermove', pointermove);
+				document.removeEventListener('pointerup', pointerup);
 			};
 
-			document.addEventListener('pointermove', pointer_move);
-			document.addEventListener('pointerup', pointer_up);
+			document.addEventListener('pointermove', pointermove);
+			document.addEventListener('pointerup', pointerup);
 			event.preventDefault();
 		}
 	},
@@ -122,9 +122,9 @@ const c_ui_window = {
 			class="c-ui-window c-ui-raised"
 			:class="{ active: is_active_win }"
 			:style="{ top: pos_y + 'px', left: pos_x + 'px', width: width + 'px', height: height + 'px' }"
-			@pointerdown.capture="window_pointer_down"
+			@pointerdown.capture="win_pointerdown_capture"
 		>
-			<div class="titlebar" @pointerdown="titlebar_pointer_down">
+			<div class="titlebar" @pointerdown="tb_pointerdown_capture">
 				<span class="title">{{ title }}</span>
 			</div>
 			<slot></slot>
