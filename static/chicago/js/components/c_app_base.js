@@ -1,3 +1,5 @@
+let global_window_id = 0;
+
 export const c_app_base = {
 	inject: ['srvc_taskbar'],
 
@@ -15,6 +17,7 @@ export const c_app_base = {
 	methods: {
 		create_window(config) {
 			this.windows.push({
+				id: ++global_window_id,
 				width: config.width || 200,
 				height: config.height || 150,
 				title: config.title || 'New Window',
@@ -32,7 +35,7 @@ export const c_app_base = {
 		<div>
 			<c-ui-window
 				v-for="(win, idx) in windows"
-				:key="idx"
+				:key="win.id"
 				:style="{ zIndex: z_idx_base + (windows.length - idx) }"
 				:width="win.width"
 				:height="win.height"
