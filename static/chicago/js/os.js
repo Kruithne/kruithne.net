@@ -15,15 +15,6 @@ function ext_split(file) {
 
 	return [file.slice(0, idx), file.slice(idx + 1)];
 }
-
-function generate_uuid() {
-	if (crypto?.randomUUID)
-		return crypto.randomUUID();
-
-	return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-		(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-	);
-}
 // endregion
 
 // region c_ui_button
@@ -180,9 +171,11 @@ const srvc_taskbar = reactive({
 const global_module_meta = new Map();
 const global_module_fonts = new Set();
 
+let global_module_id = 0;
+
 async function load_module(mod) {
 	try {
-		const module_id = generate_uuid();
+		const module_id = ++global_module_id;
 		if (typeof mod === 'string') {
 			console.log(`load_module ${mod} ${module_id}`);
 			mod = (await import(mod)).default;
