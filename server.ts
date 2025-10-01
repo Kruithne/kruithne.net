@@ -22,6 +22,7 @@ async function resolve_bootstrap_content(content: string | BunFile): Promise<str
 
 // region bootstrap
 const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
+init_wow_export(server);
 
 const global_sub_table = {
 	cache_bust,
@@ -100,7 +101,6 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 	
 	return http_apply_range(file, request);
 });
-init_wow_export(server);
 // endregion
 
 // region legacy
