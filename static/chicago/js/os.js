@@ -27,6 +27,109 @@ const c_ui_button = {
 };
 // endregion
 
+// region c_pixel_font
+const c_pixel_font = {
+	props: {
+		text: { type: String, default: '' },
+		font: { type: String, required: true },
+		color: { type: String, default: '#ffffff' },
+		bold: { type: Boolean, default: false }
+	},
+
+	data() {
+		return {
+			canvas_width: 0,
+			canvas_height: 0
+		}
+	},
+
+	async mounted() {
+		await this.$nextTick();
+		this.render_text();
+	},
+
+	watch: {
+		text() {
+			this.render_text();
+		},
+		color() {
+			this.render_text();
+		},
+		bold() {
+			this.render_text();
+		}
+	},
+
+	methods: {
+		async render_text() {
+			const pixel_font = global_pixel_fonts.get(this.font);
+			if (!pixel_font) {
+				console.error(`pixel font ${this.font} not loaded`);
+				return;
+			}
+
+			const { metadata, image } = pixel_font;
+			const canvas = this.$refs.canvas;
+			if (!canvas)
+				return;
+
+			let total_width = 0;
+			const text_chars = Array.from(this.text);
+			const bold_char_spacing = this.bold ? 1 : 0;
+
+			for (const char of text_chars) {
+				const char_data = metadata.characters[char];
+				if (char_data) {
+					total_width += char_data.width + bold_char_spacing;
+				}
+			}
+
+			const bold_offset = this.bold ? 1 : 0;
+			const canvas_width = total_width + bold_offset;
+
+			this.canvas_width = canvas_width;
+			this.canvas_height = metadata.pixel_height;
+
+			await this.$nextTick();
+
+			const ctx = canvas.getContext('2d');
+			ctx.clearRect(0, 0, canvas_width, metadata.pixel_height);
+
+			let x_offset = 0;
+			for (const char of text_chars) {
+				const char_data = metadata.characters[char];
+				if (char_data) {
+					ctx.drawImage(
+						image,
+						char_data.x, char_data.y, char_data.width, char_data.height,
+						x_offset, 0, char_data.width, char_data.height
+					);
+
+					if (this.bold) {
+						ctx.drawImage(
+							image,
+							char_data.x, char_data.y, char_data.width, char_data.height,
+							x_offset + 1, 0, char_data.width, char_data.height
+						);
+					}
+
+					x_offset += char_data.width + bold_char_spacing;
+				}
+			}
+
+			if (this.color !== '#ffffff') {
+				ctx.globalCompositeOperation = 'source-in';
+				ctx.fillStyle = this.color;
+				ctx.fillRect(0, 0, canvas_width, metadata.pixel_height);
+				ctx.globalCompositeOperation = 'source-over';
+			}
+		}
+	},
+
+	template: `<canvas ref="canvas" :width="canvas_width" :height="canvas_height" style="display: inline-block; vertical-align: middle;"></canvas>`
+};
+// endregion
+
 // region c_ui_window
 let global_is_first_window = true;
 let global_win_sub_x = 45;
@@ -112,6 +215,10 @@ const c_ui_window = {
 	computed: {
 		is_active_win() {
 			return this.module && this.sys_state.active_module === this.module && this.win_idx === 0;
+		},
+
+		title_color() {
+			return this.is_active_win ? '#ffffff' : '#c0c0c0';
 		}
 	},
 
@@ -123,7 +230,7 @@ const c_ui_window = {
 			@pointerdown.capture="win_pointerdown_capture"
 		>
 			<div class="titlebar" @pointerdown="tb_pointerdown_capture">
-				<span class="title">{{ title }}</span>
+				<c-pixel-text :text="title" font="sserife-8pt" :color="title_color" :bold="true" class="title"/>
 			</div>
 			<slot></slot>
 		</div>
@@ -170,6 +277,7 @@ const srvc_taskbar = reactive({
 // region modules
 const global_module_meta = new Map();
 const global_module_fonts = new Set();
+const global_pixel_fonts = new Map();
 
 let global_module_id = 0;
 
@@ -336,6 +444,30 @@ async function load_font(font_name, href, params) {
 	document.fonts.add(font);
 	global_module_fonts.add(font_name);
 }
+
+async function load_pixel_font(font_name, json_path, png_path) {
+	if (global_pixel_fonts.has(font_name)) {
+		console.log(`pixel font ${font_name} already loaded, skipping`);
+		return;
+	}
+
+	console.log(`load_pixel_font ${font_name} ${json_path} ${png_path}`);
+
+	const [json_res, img] = await Promise.all([
+		fetch(json_path).then(r => r.json()),
+		new Promise((resolve, reject) => {
+			const image = new Image();
+			image.onload = () => resolve(image);
+			image.onerror = reject;
+			image.src = png_path;
+		})
+	]);
+
+	global_pixel_fonts.set(font_name, {
+		metadata: json_res,
+		image: img
+	});
+}
 // endregion
 
 // region mod_taskbar
@@ -396,9 +528,11 @@ const mod_taskbar = {
 	// register components
 	app.component('c-ui-button', c_ui_button);
 	app.component('c-ui-window', c_ui_window);
+	app.component('c-pixel-text', c_pixel_font);
 
 	await Promise.all([
 		load_stylesheet('{{asset=css/global.css}}'),
+		load_pixel_font('sserife-8pt', '{{asset=fonts/sserife-8pt.json}}', '{{asset=fonts/sserife-8pt.png}}'),
 		load_module(mod_taskbar)
 	]);
 

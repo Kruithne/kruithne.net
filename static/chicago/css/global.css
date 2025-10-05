@@ -26,7 +26,6 @@
 /* region global */
 body {
 	user-select: none;
-	font-family: w95font;
 }
 
 @media (max-width: 768px), (pointer: coarse) {
@@ -71,10 +70,7 @@ body {
 }
 
 .c-ui-window .titlebar {
-	font-family: w95font-bold;
-	font-size: 16px;
 	background-color: var(--vga-gray);
-	color: var(--vga-silver);
 	padding-left: 5px;
 	display: flex;
 	align-items: center;
@@ -83,13 +79,11 @@ body {
 
 .c-ui-window.active .titlebar {
 	background-color: var(--vga-navy);
-	color: var(--vga-white);
 }
 
 .c-ui-window .titlebar .title {
 	white-space: nowrap;
 	overflow: hidden;
-	text-overflow: ellipsis;
 }
 /* endregion */
 
