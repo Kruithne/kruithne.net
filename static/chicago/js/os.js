@@ -53,19 +53,43 @@ const c_pixel_font = {
 		font: { type: String, required: true },
 		size: { type: Number, default: 8 },
 		color: { type: String, default: VGA_16.WHITE },
-		bold: { type: Boolean, default: false }
+		bold: { type: Boolean, default: false },
+		max_width: { type: Number, default: null }
 	},
 
 	data() {
 		return {
 			canvas_width: 0,
-			canvas_height: 0
+			canvas_height: 0,
+			container_width: null,
+			resize_observer: null
 		}
 	},
 
 	async mounted() {
 		await this.$nextTick();
+
+		const canvas = this.$refs.canvas;
+		if (canvas && canvas.parentElement) {
+			this.resize_observer = new ResizeObserver(entries => {
+				for (const entry of entries) {
+					this.container_width = entry.contentRect.width;
+					this.render_text();
+				}
+			});
+
+			this.resize_observer.observe(canvas.parentElement);
+			this.container_width = canvas.parentElement.offsetWidth;
+		}
+
 		this.render_text();
+	},
+
+	beforeUnmount() {
+		if (this.resize_observer) {
+			this.resize_observer.disconnect();
+			this.resize_observer = null;
+		}
 	},
 
 	watch: {
@@ -83,10 +107,68 @@ const c_pixel_font = {
 
 		bold() {
 			this.render_text();
+		},
+
+		max_width() {
+			this.render_text();
 		}
 	},
 
 	methods: {
+		measure_text_width(text, metadata) {
+			const text_chars = Array.from(text);
+			const bold_char_spacing = this.bold ? 1 : 0;
+			let width = 0;
+
+			for (const char of text_chars) {
+				const char_data = metadata.characters[char];
+				if (char_data)
+					width += char_data.width + bold_char_spacing;
+			}
+
+			const bold_offset = this.bold ? 1 : 0;
+			return width + bold_offset;
+		},
+
+		draw_chars(ctx, lines, metadata, image, bold_char_spacing) {
+			const line_height = metadata.pixel_height;
+			let y_offset = 0;
+
+			for (const line of lines) {
+				let x_offset = 0;
+				for (const char of line) {
+					const char_data = metadata.characters[char];
+					if (char_data) {
+						ctx.drawImage(
+							image,
+							char_data.x, char_data.y, char_data.width, char_data.height,
+							x_offset, y_offset, char_data.width, char_data.height
+						);
+
+						if (this.bold) {
+							ctx.drawImage(
+								image,
+								char_data.x, char_data.y, char_data.width, char_data.height,
+								x_offset + 1, y_offset, char_data.width, char_data.height
+							);
+						}
+
+						x_offset += char_data.width + bold_char_spacing;
+					}
+				}
+				y_offset += line_height;
+			}
+		},
+
+		apply_color(ctx, width, height) {
+			if (this.color !== '#ffffff') {
+				ctx.globalCompositeOperation = 'source-in';
+				ctx.fillStyle = this.color;
+				ctx.fillRect(0, 0, width, height);
+				ctx.globalCompositeOperation = 'source-over';
+			}
+		},
+
 		async render_text() {
 			const pixel_font = this.get_closest_font();
 			if (!pixel_font) {
@@ -99,55 +181,115 @@ const c_pixel_font = {
 			if (!canvas)
 				return;
 
-			let total_width = 0;
-			const text_chars = Array.from(this.text);
 			const bold_char_spacing = this.bold ? 1 : 0;
+			const bold_offset = this.bold ? 1 : 0;
 
-			for (const char of text_chars) {
-				const char_data = metadata.characters[char];
-				if (char_data)
-					total_width += char_data.width + bold_char_spacing;
+			if (this.max_width !== null) {
+				await this.render_ellipsis(metadata, image, bold_char_spacing, bold_offset);
+			} else {
+				await this.render_wrapped(metadata, image, bold_char_spacing, bold_offset);
+			}
+		},
+
+		async render_ellipsis(metadata, image, bold_char_spacing, bold_offset) {
+			const canvas = this.$refs.canvas;
+			const text_chars = Array.from(this.text);
+			const ellipsis_width = this.measure_text_width('...', metadata);
+
+			let current_width = 0;
+			let fit_index = 0;
+
+			for (let i = 0; i < text_chars.length; i++) {
+				const char_data = metadata.characters[text_chars[i]];
+				if (!char_data)
+					continue;
+
+				const char_width = char_data.width + bold_char_spacing;
+				if (current_width + char_width + ellipsis_width > this.max_width)
+					break;
+
+				current_width += char_width;
+				fit_index = i + 1;
 			}
 
-			const bold_offset = this.bold ? 1 : 0;
-			const canvas_width = total_width + bold_offset;
+			const truncated_text = text_chars.slice(0, fit_index).join('') + (fit_index < text_chars.length ? '...' : '');
+			const final_width = Math.min(this.measure_text_width(truncated_text, metadata), this.max_width);
 
-			this.canvas_width = canvas_width;
+			this.canvas_width = final_width;
 			this.canvas_height = metadata.pixel_height;
 
 			await this.$nextTick();
 
 			const ctx = canvas.getContext('2d');
-			ctx.clearRect(0, 0, canvas_width, metadata.pixel_height);
+			ctx.clearRect(0, 0, final_width, metadata.pixel_height);
 
-			let x_offset = 0;
+			this.draw_chars(ctx, [Array.from(truncated_text)], metadata, image, bold_char_spacing);
+			this.apply_color(ctx, final_width, metadata.pixel_height);
+		},
+
+		async render_wrapped(metadata, image, bold_char_spacing, bold_offset) {
+			const canvas = this.$refs.canvas;
+			const text_chars = Array.from(this.text);
+
+			const max_line_width = this.container_width || Infinity;
+
+			const lines = [];
+			let current_line = [];
+			let current_width = 0;
+
 			for (const char of text_chars) {
 				const char_data = metadata.characters[char];
-				if (char_data) {
-					ctx.drawImage(
-						image,
-						char_data.x, char_data.y, char_data.width, char_data.height,
-						x_offset, 0, char_data.width, char_data.height
-					);
+				if (!char_data)
+					continue;
 
-					if (this.bold) {
-						ctx.drawImage(
-							image,
-							char_data.x, char_data.y, char_data.width, char_data.height,
-							x_offset + 1, 0, char_data.width, char_data.height
-						);
+				const char_width = char_data.width + bold_char_spacing;
+
+				if (char === ' ') {
+					if (current_width + char_width > max_line_width && current_line.length > 0) {
+						lines.push(current_line);
+						current_line = [];
+						current_width = 0;
+						continue;
 					}
-
-					x_offset += char_data.width + bold_char_spacing;
+				} else if (current_width + char_width > max_line_width && current_line.length > 0) {
+					lines.push(current_line);
+					current_line = [];
+					current_width = 0;
 				}
+
+				current_line.push(char);
+				current_width += char_width;
 			}
 
-			if (this.color !== '#ffffff') {
-				ctx.globalCompositeOperation = 'source-in';
-				ctx.fillStyle = this.color;
-				ctx.fillRect(0, 0, canvas_width, metadata.pixel_height);
-				ctx.globalCompositeOperation = 'source-over';
+			if (current_line.length > 0)
+				lines.push(current_line);
+
+			let max_width = 0;
+			for (const line of lines) {
+				let line_width = 0;
+				for (const char of line) {
+					const char_data = metadata.characters[char];
+					if (char_data)
+						line_width += char_data.width + bold_char_spacing;
+				}
+				
+				line_width += bold_offset;
+				if (line_width > max_width)
+					max_width = line_width;
 			}
+
+			const canvas_height = lines.length * metadata.pixel_height;
+
+			this.canvas_width = max_width;
+			this.canvas_height = canvas_height;
+
+			await this.$nextTick();
+
+			const ctx = canvas.getContext('2d');
+			ctx.clearRect(0, 0, max_width, canvas_height);
+
+			this.draw_chars(ctx, lines, metadata, image, bold_char_spacing);
+			this.apply_color(ctx, max_width, canvas_height);
 		},
 
 		get_closest_font() {
@@ -284,7 +426,7 @@ const c_ui_window = {
 			@pointerdown.capture="win_pointerdown_capture"
 		>
 			<div class="titlebar" @pointerdown="tb_pointerdown_capture">
-				<c-pixel-text :text="title" font="sserife" :size="10" :color="title_color" :bold="true" class="title"/>
+				<c-pixel-text :text="title" font="sserife" :size="10" :color="title_color" :bold="true" :max_width="width - 20" class="title"/>
 			</div>
 			<slot></slot>
 		</div>
