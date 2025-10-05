@@ -4,6 +4,25 @@ import { c_app_base } from '{{asset=js/components/c_app_base.js}}';
 // region generic
 const EMPTY_ARRAY = new Array(0);
 
+const VGA_16 = {
+	BLACK: '#000000',
+	MAROON: '#800000',
+	GREEN: '#008000',
+	OLIVE: '#808000',
+	NAVY: '#000080',
+	PURPLE: '#800080',
+	TEAL: '#008080',
+	SILVER: '#c0c0c0',
+	GRAY: '#808080',
+	RED: '#ff0000',
+	LIME: '#00ff00',
+	YELLOW: '#ffff00',
+	BLUE: '#0000ff',
+	FUCHSIA: '#ff00ff',
+	AQUA: '#00ffff',
+	WHITE: '#ffffff'
+};
+
 function path_basename(path) {
 	return path.match(/(?:^|\/)([^/?#]+)(?:[?#].*)?$/)?.[1] ?? '';
 }
@@ -33,7 +52,7 @@ const c_pixel_font = {
 		text: { type: String, default: '' },
 		font: { type: String, required: true },
 		size: { type: Number, default: 8 },
-		color: { type: String, default: '#ffffff' },
+		color: { type: String, default: VGA_16.WHITE },
 		bold: { type: Boolean, default: false }
 	},
 
@@ -253,7 +272,7 @@ const c_ui_window = {
 		},
 
 		title_color() {
-			return this.is_active_win ? '#ffffff' : '#c0c0c0';
+			return this.is_active_win ? VGA_16.WHITE : VGA_16.SILVER;
 		}
 	},
 
