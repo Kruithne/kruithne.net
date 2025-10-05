@@ -32,6 +32,7 @@ const c_pixel_font = {
 	props: {
 		text: { type: String, default: '' },
 		font: { type: String, required: true },
+		size: { type: Number, default: 8 },
 		color: { type: String, default: '#ffffff' },
 		bold: { type: Boolean, default: false }
 	},
@@ -52,6 +53,9 @@ const c_pixel_font = {
 		text() {
 			this.render_text();
 		},
+		size() {
+			this.render_text();
+		},
 		color() {
 			this.render_text();
 		},
@@ -62,9 +66,9 @@ const c_pixel_font = {
 
 	methods: {
 		async render_text() {
-			const pixel_font = global_pixel_fonts.get(this.font);
+			const pixel_font = this.get_closest_font();
 			if (!pixel_font) {
-				console.error(`pixel font ${this.font} not loaded`);
+				console.error(`no pixel font available for ${this.font}`);
 				return;
 			}
 
@@ -123,6 +127,35 @@ const c_pixel_font = {
 				ctx.fillRect(0, 0, canvas_width, metadata.pixel_height);
 				ctx.globalCompositeOperation = 'source-over';
 			}
+		},
+
+		get_closest_font() {
+			const available_sizes = [];
+			for (const [key] of global_pixel_fonts) {
+				if (key.startsWith(`${this.font}-`)) {
+					const size_match = key.match(/-(\d+)pt$/);
+					if (size_match)
+						available_sizes.push(parseInt(size_match[1]));
+				}
+			}
+
+			if (available_sizes.length === 0)
+				return null;
+
+			available_sizes.sort((a, b) => a - b);
+
+			let closest_size = available_sizes[0];
+			let min_diff = Math.abs(this.size - closest_size);
+
+			for (const size of available_sizes) {
+				const diff = Math.abs(this.size - size);
+				if (diff < min_diff) {
+					min_diff = diff;
+					closest_size = size;
+				}
+			}
+
+			return global_pixel_fonts.get(`${this.font}-${closest_size}pt`);
 		}
 	},
 
@@ -230,7 +263,7 @@ const c_ui_window = {
 			@pointerdown.capture="win_pointerdown_capture"
 		>
 			<div class="titlebar" @pointerdown="tb_pointerdown_capture">
-				<c-pixel-text :text="title" font="sserife-8pt" :color="title_color" :bold="true" class="title"/>
+				<c-pixel-text :text="title" font="sserife" :size="10" :color="title_color" :bold="true" class="title"/>
 			</div>
 			<slot></slot>
 		</div>
@@ -469,15 +502,13 @@ async function load_pixel_font(font_name, json_path, png_path) {
 	});
 }
 
-async function load_pixel_font_bin(font_name, bin_path, pt_size) {
-	const full_font_name = `${font_name}-${pt_size}pt`;
-
-	if (global_pixel_fonts.has(full_font_name)) {
-		console.log(`pixel font ${full_font_name} already loaded, skipping`);
+async function load_pixel_font_bin(font_name, bin_path) {
+	if (global_pixel_fonts.has(font_name)) {
+		console.log(`pixel font ${font_name} already loaded, skipping`);
 		return;
 	}
 
-	console.log(`load_pixel_font_bin ${full_font_name} ${bin_path}`);
+	console.log(`load_pixel_font_bin ${font_name} ${bin_path}`);
 
 	const res = await fetch(bin_path);
 	const array_buffer = await res.arrayBuffer();
@@ -493,8 +524,8 @@ async function load_pixel_font_bin(font_name, bin_path, pt_size) {
 
 	const num_sizes = data.getUint16(8, true);
 
+	const toc_entries = [];
 	let toc_offset = 10;
-	let found_entry = null;
 	for (let i = 0; i < num_sizes; i++) {
 		const entry_pt_size = data.getUint16(toc_offset, true);
 		const pixel_height = data.getUint16(toc_offset + 2, true);
@@ -503,42 +534,38 @@ async function load_pixel_font_bin(font_name, bin_path, pt_size) {
 		const png_offset = data.getUint32(toc_offset + 10, true);
 		const png_size = data.getUint32(toc_offset + 14, true);
 
-		if (entry_pt_size === pt_size) {
-			found_entry = { pixel_height, char_count, data_offset, png_offset, png_size };
-			break;
-		}
-
+		toc_entries.push({ entry_pt_size, pixel_height, char_count, data_offset, png_offset, png_size });
 		toc_offset += 18;
 	}
 
-	if (!found_entry)
-		throw new Error(`font size ${pt_size}pt not found in ${bin_path}`);
+	for (const entry of toc_entries) {
+		const characters = {};
+		let char_offset = entry.data_offset;
+		for (let i = 0; i < entry.char_count; i++) {
+			const char_code = data.getUint16(char_offset, true);
+			const x = data.getUint16(char_offset + 2, true);
+			const y = data.getUint16(char_offset + 4, true);
+			const width = data.getUint8(char_offset + 6);
+			const height = data.getUint8(char_offset + 7);
 
-	const characters = {};
-	let char_offset = found_entry.data_offset;
-	for (let i = 0; i < found_entry.char_count; i++) {
-		const char_code = data.getUint16(char_offset, true);
-		const x = data.getUint16(char_offset + 2, true);
-		const y = data.getUint16(char_offset + 4, true);
-		const width = data.getUint8(char_offset + 6);
-		const height = data.getUint8(char_offset + 7);
+			const char = String.fromCharCode(char_code);
+			characters[char] = { x, y, width, height };
 
-		const char = String.fromCharCode(char_code);
-		characters[char] = { x, y, width, height };
+			char_offset += 8;
+		}
 
-		char_offset += 8;
+		const png_data = array_buffer.slice(entry.png_offset, entry.png_offset + entry.png_size);
+		const img = await createImageBitmap(new Blob([png_data], { type: 'image/png' }));
+
+		const full_font_name = `${font_name}-${entry.entry_pt_size}pt`;
+		global_pixel_fonts.set(full_font_name, {
+			metadata: {
+				pixel_height: entry.pixel_height,
+				characters: characters
+			},
+			image: img
+		});
 	}
-
-	const png_data = array_buffer.slice(found_entry.png_offset, found_entry.png_offset + found_entry.png_size);
-	const img = await createImageBitmap(new Blob([png_data], { type: 'image/png' }));
-
-	global_pixel_fonts.set(full_font_name, {
-		metadata: {
-			pixel_height: found_entry.pixel_height,
-			characters: characters
-		},
-		image: img
-	});
 }
 // endregion
 
@@ -604,7 +631,7 @@ const mod_taskbar = {
 
 	await Promise.all([
 		load_stylesheet('{{asset=css/global.css}}'),
-		load_pixel_font_bin('sserife', '{{asset=fonts/sserife.pfnt}}', 8),
+		load_pixel_font_bin('sserife', '{{asset=fonts/sserife.pfnt}}'),
 		load_module(mod_taskbar)
 	]);
 
