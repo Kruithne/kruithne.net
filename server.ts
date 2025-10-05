@@ -70,8 +70,7 @@ server.default((req, status_code) => cache.request(
 server.route('/', (req, url) => {
 	return cache.request(req, '/', async () => {
 		return await parse_template(
-			//await resolve_bootstrap_content(Bun.file('./html/index.html')),
-			await resolve_bootstrap_content(Bun.file('./html/soon.html')),
+			await resolve_bootstrap_content(Bun.file('./html/index.html')),
 			global_sub_table,
 			false
 		);
