@@ -530,24 +530,7 @@ async function load_pixel_font_bin(font_name, bin_path, pt_size) {
 	}
 
 	const png_data = array_buffer.slice(found_entry.png_offset, found_entry.png_offset + found_entry.png_size);
-	const blob = new Blob([png_data], { type: 'image/png' });
-	const blob_url = URL.createObjectURL(blob);
-
-	const img = await new Promise((resolve, reject) => {
-		const image = new Image();
-
-		image.onload = () => {
-			URL.revokeObjectURL(blob_url);
-			resolve(image);
-		};
-
-		image.onerror = () => {
-			URL.revokeObjectURL(blob_url);
-			reject(new Error('failed to load font image'));
-		};
-		
-		image.src = blob_url;
-	});
+	const img = await createImageBitmap(new Blob([png_data], { type: 'image/png' }));
 
 	global_pixel_fonts.set(full_font_name, {
 		metadata: {
