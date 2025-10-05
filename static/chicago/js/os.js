@@ -53,12 +53,15 @@ const c_pixel_font = {
 		text() {
 			this.render_text();
 		},
+
 		size() {
 			this.render_text();
 		},
+
 		color() {
 			this.render_text();
 		},
+
 		bold() {
 			this.render_text();
 		}
@@ -83,9 +86,8 @@ const c_pixel_font = {
 
 			for (const char of text_chars) {
 				const char_data = metadata.characters[char];
-				if (char_data) {
+				if (char_data)
 					total_width += char_data.width + bold_char_spacing;
-				}
 			}
 
 			const bold_offset = this.bold ? 1 : 0;
