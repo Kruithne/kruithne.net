@@ -468,6 +468,95 @@ async function load_pixel_font(font_name, json_path, png_path) {
 		image: img
 	});
 }
+
+async function load_pixel_font_bin(font_name, bin_path, pt_size) {
+	const full_font_name = `${font_name}-${pt_size}pt`;
+
+	if (global_pixel_fonts.has(full_font_name)) {
+		console.log(`pixel font ${full_font_name} already loaded, skipping`);
+		return;
+	}
+
+	console.log(`load_pixel_font_bin ${full_font_name} ${bin_path}`);
+
+	const res = await fetch(bin_path);
+	const array_buffer = await res.arrayBuffer();
+	const data = new DataView(array_buffer);
+
+	const magic = String.fromCharCode(data.getUint8(0), data.getUint8(1), data.getUint8(2), data.getUint8(3));
+	if (magic !== 'PFNT')
+		throw new Error('invalid font binary: bad magic');
+
+	const version = data.getUint32(4, true);
+	if (version !== 1)
+		throw new Error(`unsupported font binary version: ${version}`);
+
+	const num_sizes = data.getUint16(8, true);
+
+	let toc_offset = 10;
+	let found_entry = null;
+	for (let i = 0; i < num_sizes; i++) {
+		const entry_pt_size = data.getUint16(toc_offset, true);
+		const pixel_height = data.getUint16(toc_offset + 2, true);
+		const char_count = data.getUint16(toc_offset + 4, true);
+		const data_offset = data.getUint32(toc_offset + 6, true);
+		const png_offset = data.getUint32(toc_offset + 10, true);
+		const png_size = data.getUint32(toc_offset + 14, true);
+
+		if (entry_pt_size === pt_size) {
+			found_entry = { pixel_height, char_count, data_offset, png_offset, png_size };
+			break;
+		}
+
+		toc_offset += 18;
+	}
+
+	if (!found_entry)
+		throw new Error(`font size ${pt_size}pt not found in ${bin_path}`);
+
+	const characters = {};
+	let char_offset = found_entry.data_offset;
+	for (let i = 0; i < found_entry.char_count; i++) {
+		const char_code = data.getUint16(char_offset, true);
+		const x = data.getUint16(char_offset + 2, true);
+		const y = data.getUint16(char_offset + 4, true);
+		const width = data.getUint8(char_offset + 6);
+		const height = data.getUint8(char_offset + 7);
+
+		const char = String.fromCharCode(char_code);
+		characters[char] = { x, y, width, height };
+
+		char_offset += 8;
+	}
+
+	const png_data = array_buffer.slice(found_entry.png_offset, found_entry.png_offset + found_entry.png_size);
+	const blob = new Blob([png_data], { type: 'image/png' });
+	const blob_url = URL.createObjectURL(blob);
+
+	const img = await new Promise((resolve, reject) => {
+		const image = new Image();
+
+		image.onload = () => {
+			URL.revokeObjectURL(blob_url);
+			resolve(image);
+		};
+
+		image.onerror = () => {
+			URL.revokeObjectURL(blob_url);
+			reject(new Error('failed to load font image'));
+		};
+		
+		image.src = blob_url;
+	});
+
+	global_pixel_fonts.set(full_font_name, {
+		metadata: {
+			pixel_height: found_entry.pixel_height,
+			characters: characters
+		},
+		image: img
+	});
+}
 // endregion
 
 // region mod_taskbar
@@ -532,7 +621,7 @@ const mod_taskbar = {
 
 	await Promise.all([
 		load_stylesheet('{{asset=css/global.css}}'),
-		load_pixel_font('sserife-8pt', '{{asset=fonts/sserife-8pt.json}}', '{{asset=fonts/sserife-8pt.png}}'),
+		load_pixel_font_bin('sserife', '{{asset=fonts/sserife.pfnt}}', 8),
 		load_module(mod_taskbar)
 	]);
 
