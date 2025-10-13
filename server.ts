@@ -1,7 +1,6 @@
 import { http_serve, caution, cache_bust, cache_http, parse_template, http_apply_range, HTTP_STATUS_TEXT, HTTP_STATUS_CODE } from 'spooder';
 import { init as init_wow_export } from './wow.export/module';
 import path from 'node:path';
-import fs from 'node:fs';
 
 // region typing
 type BunFile = ReturnType<typeof Bun.file>;
@@ -70,7 +69,8 @@ server.default((req, status_code) => cache.request(
 server.route('/', (req, url) => {
 	return cache.request(req, '/', async () => {
 		return await parse_template(
-			await resolve_bootstrap_content(Bun.file('./html/index.html')),
+			await resolve_bootstrap_content(Bun.file('./html/soon.html')),
+			//await resolve_bootstrap_content(Bun.file('./html/index.html')),
 			global_sub_table,
 			false
 		);
@@ -103,32 +103,9 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 // endregion
 
 // region legacy
-server.dir('/home', './home', async (file_path, file, stat, request) => {
-	if (path.basename(file_path).startsWith('.'))
-		return 404;
-
-	if (stat.isDirectory()) {
-		try {
-			const entries = await fs.promises.readdir(file_path);
-			const filtered_entries = entries.filter(entry => !entry.startsWith('.'));
-			
-			const request_path = new URL(request.url).pathname;
-			const links = filtered_entries.map(entry => {
-				return `<a href="${request_path}/${entry}">${entry}</a>`;
-			}).join('<br>\n');
-			
-			const html = `<!DOCTYPE html><html><head><title>Directory listing</title></head><body><h1>Directory listing</h1>${links}</body></html>`;
-			
-			return new Response(html, {
-				status: 200,
-				headers: { 'Content-Type': 'text/html' }
-			});
-		} catch (err) {
-			return 500;
-		}
-	}
-
-	return file;
+server.route('/home/files/patreon/*', (req, url) => {
+	const path_suffix = url.pathname.slice('/home/files/patreon/'.length);
+	return Response.redirect(`https://patreon.kruithne.net/files/${path_suffix}`, 301);
 });
 // endregion
 
