@@ -1,5 +1,6 @@
 import { http_serve, caution, cache_bust, cache_http, parse_template, http_apply_range, HTTP_STATUS_TEXT, HTTP_STATUS_CODE } from 'spooder';
 import { init as init_wow_export } from './wow.export/module';
+import { init as init_beholder } from './beholder';
 import path from 'node:path';
 
 // region typing
@@ -22,6 +23,7 @@ async function resolve_bootstrap_content(content: string | BunFile): Promise<str
 // region bootstrap
 const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 await init_wow_export(server);
+await init_beholder(server);
 
 const global_sub_table = {
 	cache_bust,
