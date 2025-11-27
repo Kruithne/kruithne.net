@@ -9,7 +9,7 @@
 			"enabled": true,
 			"max_attempts": -1,
 			"backoff_max": 300000,
-			"backoff_grace": 30000 
+			"backoff_grace": 30000
 		},
 		"run": "bun run server.ts",
 		"update": [
@@ -30,6 +30,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"spooder": "^5.1.12"
+		"spooder": "^6.1.5"
 	}
 }
