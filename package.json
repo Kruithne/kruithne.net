@@ -30,6 +30,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"spooder": "^6.1.5"
+		"spooder": "^6.1.6"
 	}
 }
