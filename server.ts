@@ -19,13 +19,22 @@ const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.S
 if (process.env.SPOODER_ENV !== 'dev')
 	await init_wow_export(server);
 
-async function get_thumb(input: string): Promise<string> {
-	// "static/images/test/blah.png?530" -> path and width
-	const [image_path, width_str] = input.split('?');
-	const width = parseInt(width_str, 10);
+type ThumbResult = {
+	thumb_src: string;
+	full_src: string;
+	popout: boolean;
+};
+
+async function get_thumb(input: string): Promise<ThumbResult> {
+	// "static/images/test/blah.png?width=530&popout" using URL query params
+	const [image_path, query_string] = input.split('?');
+	const params = new URLSearchParams(query_string);
+
+	const width = parseInt(params.get('width') ?? '', 10);
+	const popout = params.has('popout');
 
 	if (!width || isNaN(width))
-		throw new Error(`Invalid thumb width: ${width_str}`);
+		throw new Error(`Invalid thumb width in: ${input}`);
 
 	const relative_path = image_path.replace(/^static\/images\//, ''); // test/blah.png
 	const ext_idx = relative_path.lastIndexOf('.');
@@ -47,13 +56,22 @@ async function get_thumb(input: string): Promise<string> {
 	const hash_table = spooder.cache_bust_get_hash_table();
 	const original_hash = hash_table[image_path] ?? '';
 
-	return `${thumb_path}?v=${original_hash}`;
+	return {
+		thumb_src: `${thumb_path}?v=${original_hash}`,
+		full_src: `${image_path}?v=${original_hash}`,
+		popout
+	};
 }
 
 const global_sub_table = {
 	cache_bust: spooder.cache_bust,
-	image: (path: string) => `<div class="image"><img src="/${spooder.cache_bust(path)}"></div>`,
-	thumb: async (input: string) => `<div class="image"><img src="/${await get_thumb(input)}"></div>`
+	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
+	thumb: async (input: string) => {
+		const { thumb_src, full_src, popout } = await get_thumb(input);
+		if (popout)
+			return `<div class="image image-popout cursor-pointer" data-full-src="/${full_src}"><img src="/${thumb_src}"></div>`;
+		return `<div class="image"><img src="/${thumb_src}"></div>`;
+	}
 };
 
 const cache = spooder.cache_http({
