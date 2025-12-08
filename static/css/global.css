@@ -265,6 +265,28 @@ p {
 	margin: 0;
 }
 
+.image {
+	position: relative;
+	display: inline-block;
+}
+
+.image > img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--content-border-radius);
+}
+
+.image::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: var(--content-border);
+	border-radius: var(--content-border-radius);
+	filter: url(#wonky);
+	pointer-events: none;
+}
+
 @media (max-width: 999px) {
 	:root {
 		--bg-stripe-width: 50px;
