@@ -257,12 +257,16 @@ footer::before {
 
 #footer-icons {
 	display: flex;
-	gap: 40px;
+	gap: 60px;
 }
 
 #footer-icons svg {
 	width: 60px;
 	height: 60px;
+}
+
+#footer-icons a {
+	flex-shrink: 0;
 }
 
 hr {
@@ -408,6 +412,15 @@ p {
 	h1 {
 		font-size: 2rem;
 	}
+
+	#footer-icons {
+		gap: 20px;
+	}
+
+	#footer-icons svg {
+		width: 40px;
+		height: 40px;
+	}
 }
 
 .cursor-pointer {
@@ -503,5 +516,7 @@ p {
 	text-align: center;
 	padding: 15px 0;
 	font-family: var(--accent-font);
-	font-size: 1.5rem;
+	font-size: clamp(1rem, 4vw, 1.5rem);
+	max-width: 90vw;
+	word-wrap: break-word;
 }
