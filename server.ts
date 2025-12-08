@@ -2,6 +2,7 @@ import * as spooder from 'spooder';
 import { init as init_wow_export } from './wow.export/module';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { execSync } from 'node:child_process';
 
 // region constants
 const PAGE_DIR = './html/pages';
@@ -16,9 +17,41 @@ const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 //await init_wow_export(server);
 
+async function get_thumb(input: string): Promise<string> {
+	// "static/images/test/blah.png?530" -> path and width
+	const [image_path, width_str] = input.split('?');
+	const width = parseInt(width_str, 10);
+
+	if (!width || isNaN(width))
+		throw new Error(`Invalid thumb width: ${width_str}`);
+
+	const relative_path = image_path.replace(/^static\/images\//, ''); // test/blah.png
+	const ext_idx = relative_path.lastIndexOf('.');
+	const path_without_ext = relative_path.substring(0, ext_idx); // test/blah
+	const thumb_path = `static/images/thumbs/${path_without_ext}_${width}.webp`;
+
+	try {
+		await fs.access(thumb_path);
+	} catch {
+		const thumb_dir = path.dirname(thumb_path);
+		await fs.mkdir(thumb_dir, { recursive: true });
+
+		execSync(`ffmpeg -i "${image_path}" -vf "scale=${width}:-1" -lossless 1 -y "${thumb_path}"`, {
+			stdio: 'pipe'
+		});
+	}
+
+	// get the hash from the ORIGINAL image (not the thumb)
+	const hash_table = spooder.cache_bust_get_hash_table();
+	const original_hash = hash_table[image_path] ?? '';
+
+	return `${thumb_path}?v=${original_hash}`;
+}
+
 const global_sub_table = {
 	cache_bust: spooder.cache_bust,
-	image: (path: string) => `<div class="image"><img src="/${spooder.cache_bust(path)}"></div>`
+	image: (path: string) => `<div class="image"><img src="/${spooder.cache_bust(path)}"></div>`,
+	thumb: async (input: string) => `<div class="image"><img src="/${await get_thumb(input)}"></div>`
 };
 
 const cache = spooder.cache_http({
