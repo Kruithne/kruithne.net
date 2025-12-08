@@ -131,10 +131,41 @@ body {
 	cursor: url('/{{cache_bust=static/images/cursor_pointer.webp}}'), pointer;
 	padding: 10px;
 	font-family: "Chewy", system-ui;
+	position: relative;
+	isolation: isolate;
+}
+
+#nav-links > a::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: white;
+	transform: rotate(-2deg) skewX(-3deg);
+	opacity: 0;
+	z-index: -1;
+}
+
+#nav-links > a:nth-child(2)::before {
+	transform: rotate(1.5deg) skewX(2deg);
+}
+
+#nav-links > a:nth-child(3)::before {
+	transform: rotate(-1deg) skewX(-4deg);
+}
+
+#nav-links > a:nth-child(4)::before {
+	transform: rotate(2.5deg) skewX(1deg);
+}
+
+#nav-links > a:nth-child(5)::before {
+	transform: rotate(-1.5deg) skewX(3deg);
+}
+
+#nav-links > a:hover::before {
+	opacity: 1;
 }
 
 #nav-links > a:hover {
-	background: white;
 	color: black;
 }
 
