@@ -15,6 +15,8 @@
 	const tile_count = canvas.width / grid_size;
 
 	let snake, direction, food, game_running, score;
+	let last_update = 0;
+	const tick_rate = 100;
 
 	function init() {
 		snake = [{ x: 10, y: 10 }];
@@ -88,8 +90,12 @@
 		draw_cross(food.x, food.y);
 	}
 
-	function update() {
+	function update(timestamp) {
+		requestAnimationFrame(update);
+
 		if (!game_running) return;
+		if (timestamp - last_update < tick_rate) return;
+		last_update = timestamp;
 
 		const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
@@ -168,5 +174,5 @@
 	});
 
 	init();
-	setInterval(update, 100);
+	requestAnimationFrame(update);
 })();
