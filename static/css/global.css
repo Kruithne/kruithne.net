@@ -80,6 +80,12 @@ body {
 	cursor: url('/{{cache_bust=static/images/cursor.webp}}'), auto;
 }
 
+a {
+	cursor: var(--cursor-pointer);
+	color: inherit;
+	text-decoration: none;
+}
+
 #nav-overlay {
 	display: none;
 	position: fixed;
@@ -231,7 +237,10 @@ section {
 
 footer {
 	position: relative;
-	min-height: 300px;
+	min-height: 150px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 footer::before {
@@ -244,6 +253,16 @@ footer::before {
 	border-top: 5px solid var(--border-colour);
 	filter: url(#wonky);
 	pointer-events: none;
+}
+
+#footer-icons {
+	display: flex;
+	gap: 40px;
+}
+
+#footer-icons svg {
+	width: 60px;
+	height: 60px;
 }
 
 hr {

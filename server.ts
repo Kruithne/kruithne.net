@@ -72,6 +72,11 @@ const global_sub_table = {
 		if (popout)
 			return `<div class="image image-popout cursor-pointer" data-full-src="/${full_src}"><img src="/${thumb_src}"></div>`;
 		return `<div class="image"><img src="/${thumb_src}"></div>`;
+	},
+	svg: async (svg_path: string) => {
+		const content = await Bun.file(svg_path).text();
+		// Strip XML declaration if present
+		return content.replace(/<\?xml[^?]*\?>\s*/i, '');
 	}
 };
 
