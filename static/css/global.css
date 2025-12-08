@@ -137,6 +137,7 @@ body {
 	left: 30px;
 	background: var(--content-bg-colour) url(/{{cache_bust=static/images/kravatar.webp}});
 	border-radius: var(--content-border-radius);
+	transform: rotate(5deg);
 }
 
 #main-avatar::before {
