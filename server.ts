@@ -1,61 +1,89 @@
-import { http_serve, caution, cache_bust, cache_http, parse_template, http_apply_range, HTTP_STATUS_TEXT, HTTP_STATUS_CODE } from 'spooder';
+import * as spooder from 'spooder';
 import { init as init_wow_export } from './wow.export/module';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 
-// region typing
-type BunFile = ReturnType<typeof Bun.file>;
-// endregion
+// region constants
+const PAGE_DIR = './html/pages';
+const PAGE_DEFAULT_TITLE = 'kruithne.net';
+const PAGE_INDEX = '/index';
 
-// region generic
-function is_bun_file(obj: any): obj is BunFile {
-	return obj.constructor === Blob;
-}
-
-async function resolve_bootstrap_content(content: string | BunFile): Promise<string> {
-	if (is_bun_file(content))
-		return await content.text();
-
-	return content;
-}
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 5 hours
+const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 // endregion
 
 // region bootstrap
-const server = http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
-await init_wow_export(server);
+const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
+//await init_wow_export(server);
 
 const global_sub_table = {
-	cache_bust,
-
-	asset(src: string) {
-		return cache_bust(`/static/chicago/${src}`);
-	}
+	cache_bust: spooder.cache_bust
 };
-const cache = cache_http({
-	ttl: 24 * 60 * 60 * 1000, // 5 hours
-	max_size: 5 * 1024 * 1024, // 5 MB
+
+const cache = spooder.cache_http({
+	ttl: CACHE_TTL,
+	max_size: CACHE_MAX_SIZE,
 	use_canary_reporting: true,
 	use_etags: true,
 	enabled: process.env.SPOODER_ENV !== 'dev'
 });
 
-const error_base_content = await resolve_bootstrap_content(Bun.file('./html/error.html'));
-const error_page = (status_code: number) => async () => {
-	const sub_table = Object.assign({
-		error_code: status_code.toString(),
-		error_text: HTTP_STATUS_TEXT[status_code] as string
-	}, global_sub_table);
+async function template_page(content: string) {
+	const template = await Bun.file('./html/template.html').text();
+	return await spooder.parse_template(template, { content }, false);
+}
 
-	return await parse_template(error_base_content, sub_table, true);
-};
+function error_page(status_code: number) {
+	return async function() {
+		const sub_table = Object.assign({
+			error_code: status_code.toString(),
+			error_text: spooder.HTTP_STATUS_TEXT[status_code] as string
+		}, global_sub_table);
+
+		const error_content = await Bun.file('./html/error.html').text();
+		return await spooder.parse_template(await template_page(error_content), sub_table, true);
+	}
+}
+
+await (async () => {
+	const pages = await fs.readdir(PAGE_DIR);
+	for (const page of pages) {
+		if (!page.endsWith('.html'))
+			continue;
+
+		const page_path = path.join(PAGE_DIR, page);
+
+		let slug = '/' + path.basename(page, path.extname(page));
+		if (slug === PAGE_INDEX)
+			slug = '/';
+
+		server.route(slug, (req, url) => {
+			return cache.request(req, slug, async () => {
+				const content = await Bun.file(page_path).text();
+				const h1_match = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+				const page_title = h1_match?.[1] ?? PAGE_DEFAULT_TITLE;
+
+				return await spooder.parse_template(
+					await template_page(content),
+					{
+						page_title,
+						...global_sub_table
+					},
+					true
+				);
+			});
+		});
+	}
+})();
 
 server.error((err, req) => {
-	caution(err?.message ?? err);
+	spooder.caution(err?.message ?? err);
 	
 	return cache.request(
 		req,
 		'error_500',
-		error_page(HTTP_STATUS_CODE.InternalServerError_500),
-		HTTP_STATUS_CODE.InternalServerError_500
+		error_page(spooder.HTTP_STATUS_CODE.InternalServerError_500),
+		spooder.HTTP_STATUS_CODE.InternalServerError_500
 	);
 });
 
@@ -66,39 +94,26 @@ server.default((req, status_code) => cache.request(
 	status_code
 ));
 
-server.route('/', (req, url) => {
-	return cache.request(req, '/', async () => {
-		return await parse_template(
-			await resolve_bootstrap_content(Bun.file('./html/soon.html')),
-			//await resolve_bootstrap_content(Bun.file('./html/index.html')),
-			global_sub_table,
-			false
-		);
-	});
-});
-
 const STATIC_SUB_EXT = ['.css', '.js'];
 server.dir('/static', './static', async (file_path, file, stat, request) => {
 	// ignore hidden files by default, return 404 to prevent file sniffing
 	if (path.basename(file_path).startsWith('.'))
-		return HTTP_STATUS_CODE.NotFound_404;
+		return spooder.HTTP_STATUS_CODE.NotFound_404;
 	
 	if (stat.isDirectory())
-		return HTTP_STATUS_CODE.Unauthorized_401;
-
-	//await Bun.sleep(400); // todo: remove me
+		return spooder.HTTP_STATUS_CODE.Unauthorized_401;
 
 	const ext_idx = file_path.lastIndexOf('.');
 	if (ext_idx > -1) {
 		const ext = file_path.slice(ext_idx);
 
 		if (STATIC_SUB_EXT.includes(ext)) {
-			const content = await parse_template(await file.text(), global_sub_table, false);
+			const content = await spooder.parse_template(await file.text(), global_sub_table, false);
 			return new Response(content, { headers: { 'Content-Type': file.type }});
 		}
 	}
 	
-	return http_apply_range(file, request);
+	return spooder.http_apply_range(file, request);
 });
 // endregion
 
@@ -119,6 +134,6 @@ if (typeof process.env.GH_WEBHOOK_SECRET === 'string') {
 		return 200;
 	});
 } else {
-	caution('GH_WEBHOOK_SECRET environment variable not configured');
+	spooder.caution('GH_WEBHOOK_SECRET environment variable not configured');
 }
 // endregion

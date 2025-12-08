@@ -1,0 +1,117 @@
+@font-face {
+	font-family: 'Google Sans Code';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/{{cache_bust=static/fonts/google-sans-code-latin.woff2}}') format('woff2');
+}
+
+@font-face {
+	font-family: 'Google Sans Code';
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/{{cache_bust=static/fonts/google-sans-code-latin-italic.woff2}}') format('woff2');
+}
+
+@font-face {
+	font-family: 'Chewy';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/{{cache_bust=static/fonts/chewy-latin.woff2}}') format('woff2');
+}
+
+:root {
+	--bg-primary-colour: #21587d;
+	--bg-secondary-colour: #1d4f6f;
+	--bg-stripe-width: 100px;
+	--bg-fade-colour: #00000075;
+	--bg-fade-size: 30%;
+	--font-colour: white;
+	--border-colour: white;
+	--content-border: 5px solid var(--border-colour);
+	--content-border-radius: 20px;
+	--content-bg-colour: #1a1a1a;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--content-bg-colour);
+	color: var(--font-colour);
+	font-family: "Google Sans Code", monospace;
+	font-size: 1.3rem;
+	cursor: url('/{{cache_bust=static/images/cursor.png}}'), auto;
+}
+
+#page-container {
+	background:
+		linear-gradient(to bottom, var(--bg-fade-colour), transparent var(--bg-fade-size)),
+		linear-gradient(to top, var(--bg-fade-colour), transparent var(--bg-fade-size)),
+		repeating-linear-gradient(
+			90deg,
+			var(--bg-primary-colour) 0px,
+			var(--bg-primary-colour) var(--bg-stripe-width),
+			var(--bg-secondary-colour) var(--bg-stripe-width),
+			var(--bg-secondary-colour) calc(var(--bg-stripe-width) * 2)
+		);
+	padding: 50px;
+}
+
+#content-container {
+	position: relative;
+	max-width: 1080px;
+	border: var(--content-border);
+	border-radius: var(--content-border-radius);
+	background: var(--content-bg-colour);
+	margin: 70px auto 0 auto;
+	padding: 30px;
+	padding-top: 75px;
+}
+
+#main-avatar {
+	border: var(--content-border);
+	border-radius: var(--content-border-radius);
+	position: absolute;
+	width: 150px;
+	height: 150px;
+	top: -100px;
+	left: 30px;
+	background: var(--content-bg-colour) url(/{{cache_bust=static/images/kravatar.webp}});
+}
+
+#main-nav {
+	position: absolute;
+	display: flex;
+	gap: 30px;
+	top: -88px;
+	right: 30px;
+	font-size: 1.8rem;
+}
+
+#main-nav > a {
+	cursor: url('/{{cache_bust=static/images/cursor_pointer.png}}'), pointer;
+	padding: 10px;
+	font-family: "Chewy", system-ui;
+}
+
+#main-nav > a:hover {
+	background: white;
+	color: black;
+}
+
+footer {
+	border-top: 2px solid var(--border-colour);
+	min-height: 300px;
+}
+
+h1 {
+	margin: 0;
+	font-family: "Chewy", system-ui;
+	font-size: 3rem;
+}
+
+p {
+	margin: 0;
+}
