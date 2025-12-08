@@ -42,7 +42,7 @@ body {
 	color: var(--font-colour);
 	font-family: "Google Sans Code", monospace;
 	font-size: 1.3rem;
-	cursor: url('/{{cache_bust=static/images/cursor.png}}'), auto;
+	cursor: url('/{{cache_bust=static/images/cursor.webp}}'), auto;
 }
 
 #page-container {
@@ -91,7 +91,7 @@ body {
 }
 
 #main-nav > a {
-	cursor: url('/{{cache_bust=static/images/cursor_pointer.png}}'), pointer;
+	cursor: url('/{{cache_bust=static/images/cursor_pointer.webp}}'), pointer;
 	padding: 10px;
 	font-family: "Chewy", system-ui;
 }
