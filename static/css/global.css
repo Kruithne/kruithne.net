@@ -124,12 +124,39 @@ body {
 }
 
 @media (max-width: 999px) {
+	:root {
+		--bg-stripe-width: 50px;
+	}
+
+	body {
+		font-size: 1rem;
+	}
+
+	#page-container {
+		padding: 20px;
+	}
+
+	#content-container {
+		margin-top: 70px;
+		padding: 20px;
+		padding-top: 60px;
+	}
+
+	#main-avatar {
+		width: 100px;
+		height: 100px;
+		top: -70px;
+		left: 20px;
+		background-size: cover;
+	}
+
 	#nav-toggle {
 		display: flex;
 	}
 
 	#main-nav {
-		top: -70px;
+		top: -55px;
+		right: 20px;
 	}
 
 	#nav-links {
@@ -161,6 +188,10 @@ body {
 
 	#main-nav.open #nav-toggle span:nth-child(3) {
 		transform: rotate(-45deg) translate(7px, -7px);
+	}
+
+	h1 {
+		font-size: 2rem;
 	}
 }
 
