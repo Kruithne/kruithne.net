@@ -132,7 +132,7 @@ body {
 	position: absolute;
 	width: 150px;
 	height: 150px;
-	top: -100px;
+	top: -90px;
 	left: 30px;
 	background: var(--content-bg-colour) url(/{{cache_bust=static/images/kravatar.webp}});
 	border-radius: var(--content-border-radius);
