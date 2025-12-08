@@ -221,6 +221,12 @@ body {
 	color: black;
 }
 
+section {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
 footer {
 	position: relative;
 	min-height: 300px;
