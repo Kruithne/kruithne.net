@@ -264,12 +264,21 @@ body {
 		right: 0;
 		flex-direction: column;
 		background: var(--content-bg-colour);
-		border: var(--content-border);
 		border-radius: var(--content-border-radius);
 		padding: 15px;
 		gap: 10px;
 		min-width: 150px;
 		z-index: 100;
+	}
+
+	#nav-links::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border: var(--content-border);
+		border-radius: var(--content-border-radius);
+		filter: url(#wonky);
+		pointer-events: none;
 	}
 
 	#nav-links.open {
