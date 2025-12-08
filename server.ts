@@ -17,7 +17,8 @@ const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.S
 //await init_wow_export(server);
 
 const global_sub_table = {
-	cache_bust: spooder.cache_bust
+	cache_bust: spooder.cache_bust,
+	image: (path: string) => `<div class="image"><img src="/${spooder.cache_bust(path)}"></div>`
 };
 
 const cache = spooder.cache_http({
