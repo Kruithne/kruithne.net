@@ -24,6 +24,7 @@ type ThumbResult = {
 	thumb_src: string;
 	full_src: string;
 	popout: boolean;
+	title: string | null;
 };
 
 async function get_thumb(input: string): Promise<ThumbResult> {
@@ -33,6 +34,7 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 
 	const width = parseInt(params.get('width') ?? '', 10);
 	const popout = params.has('popout');
+	const title = params.get('title');
 
 	if (!width || isNaN(width))
 		throw new Error(`Invalid thumb width in: ${input}`);
@@ -60,7 +62,8 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 	return {
 		thumb_src: `${thumb_path}?v=${original_hash}`,
 		full_src: `${image_path}?v=${original_hash}`,
-		popout
+		popout,
+		title
 	};
 }
 
@@ -68,10 +71,12 @@ const global_sub_table = {
 	cache_bust: spooder.cache_bust,
 	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
 	thumb: async (input: string) => {
-		const { thumb_src, full_src, popout } = await get_thumb(input);
+		const { thumb_src, full_src, popout, title } = await get_thumb(input);
+		const title_attr = title ? ` title="${title}"` : '';
+		const title_data = title ? ` data-title="${title}"` : '';
 		if (popout)
-			return `<div class="image image-popout cursor-pointer" data-full-src="/${full_src}"><img src="/${thumb_src}"></div>`;
-		return `<div class="image"><img src="/${thumb_src}"></div>`;
+			return `<div class="image image-popout cursor-pointer" data-full-src="/${full_src}"${title_data}><img src="/${thumb_src}"${title_attr}></div>`;
+		return `<div class="image"><img src="/${thumb_src}"${title_attr}></div>`;
 	},
 	svg: async (svg_path: string) => {
 		const content = await Bun.file(svg_path).text();

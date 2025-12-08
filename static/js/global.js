@@ -27,21 +27,24 @@ navOverlay.addEventListener('click', closeNav);
 
 const imagePopoutOverlay = document.getElementById('image-popout-overlay');
 const imagePopoutClose = document.getElementById('image-popout-close');
-const imagePopoutImg = document.querySelector('#image-popout-container > img');
+const imagePopoutImg = document.querySelector('#image-popout-img-wrapper > img');
+const imagePopoutTitle = document.getElementById('image-popout-title');
 
-function openImagePopout(src) {
+function openImagePopout(src, title) {
 	imagePopoutImg.src = src;
+	imagePopoutTitle.textContent = title || '';
 	imagePopoutOverlay.classList.add('open');
 }
 
 function closeImagePopout() {
 	imagePopoutOverlay.classList.remove('open');
 	imagePopoutImg.src = '';
+	imagePopoutTitle.textContent = '';
 }
 
 imagePopoutClose.addEventListener('click', closeImagePopout);
 imagePopoutOverlay.addEventListener('click', function(e) {
-	if (e.target === imagePopoutOverlay)
+	if (e.target === imagePopoutOverlay || e.target === imagePopoutOverlay.querySelector('#image-popout-container') || e.target === imagePopoutOverlay.querySelector('#image-popout-img-wrapper'))
 		closeImagePopout();
 });
 
@@ -50,7 +53,7 @@ document.addEventListener('click', function(e) {
 	if (popoutImage) {
 		const fullSrc = popoutImage.dataset.fullSrc;
 		if (fullSrc)
-			openImagePopout(fullSrc);
+			openImagePopout(fullSrc, popoutImage.dataset.title);
 	}
 });
 
