@@ -1,5 +1,4 @@
 import * as spooder from 'spooder';
-import { init as init_wow_export } from './wow.export/module';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { execSync } from 'node:child_process';
@@ -16,8 +15,10 @@ const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 // region bootstrap
 const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
 
-if (process.env.SPOODER_ENV !== 'dev')
+if (process.env.SPOODER_ENV !== 'dev') {
+	const { init: init_wow_export } = await import('./wow.export/module');
 	await init_wow_export(server);
+}
 
 type ThumbResult = {
 	thumb_src: string;
