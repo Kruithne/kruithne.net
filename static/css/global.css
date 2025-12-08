@@ -77,23 +77,41 @@ body {
 #content-container {
 	position: relative;
 	max-width: 1080px;
-	border: var(--content-border);
-	border-radius: var(--content-border-radius);
 	background: var(--content-bg-colour);
 	margin: 70px auto 0 auto;
 	padding: 30px;
 	padding-top: 75px;
+	border-radius: var(--content-border-radius);
+}
+
+#content-container::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: var(--content-border);
+	border-radius: var(--content-border-radius);
+	filter: url(#wonky);
+	pointer-events: none;
 }
 
 #main-avatar {
-	border: var(--content-border);
-	border-radius: var(--content-border-radius);
 	position: absolute;
 	width: 150px;
 	height: 150px;
 	top: -100px;
 	left: 30px;
 	background: var(--content-bg-colour) url(/{{cache_bust=static/images/kravatar.webp}});
+	border-radius: var(--content-border-radius);
+}
+
+#main-avatar::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: var(--content-border);
+	border-radius: var(--content-border-radius);
+	filter: url(#wonky);
+	pointer-events: none;
 }
 
 #main-nav {
@@ -242,8 +260,37 @@ body {
 }
 
 footer {
-	border-top: 2px solid var(--border-colour);
+	position: relative;
 	min-height: 300px;
+}
+
+footer::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 0;
+	border-top: 5px solid var(--border-colour);
+	filter: url(#wonky);
+	pointer-events: none;
+}
+
+hr {
+	position: relative;
+	border: none;
+	height: 5px;
+	margin: 1em 0;
+	background: transparent;
+	overflow: visible;
+}
+
+hr::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-top: 5px solid var(--border-colour);
+	filter: url(#wonky);
 }
 
 h1 {
