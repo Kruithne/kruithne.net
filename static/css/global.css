@@ -265,6 +265,12 @@ p {
 	margin: 0;
 }
 
+.image-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 20px;
+}
+
 .image {
 	position: relative;
 	display: inline-block;
@@ -294,6 +300,10 @@ p {
 
 	body {
 		font-size: 0.9rem;
+	}
+
+	.image-grid {
+		grid-template-columns: 1fr;
 	}
 
 	#page-container {
