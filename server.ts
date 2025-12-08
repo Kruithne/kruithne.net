@@ -15,7 +15,9 @@ const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 
 // region bootstrap
 const server = spooder.http_serve(Number(process.env.SERVER_PORT), process.env.SERVER_LISTEN_HOST);
-//await init_wow_export(server);
+
+if (process.env.SPOODER_ENV !== 'dev')
+	await init_wow_export(server);
 
 async function get_thumb(input: string): Promise<string> {
 	// "static/images/test/blah.png?530" -> path and width
