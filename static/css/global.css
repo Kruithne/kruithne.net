@@ -477,8 +477,9 @@ p {
 }
 
 #image-popout-container {
-	display: grid;
-	grid-template-rows: 1fr auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	max-width: 90vw;
 	max-height: 90vh;
 }
@@ -495,7 +496,8 @@ p {
 	position: relative;
 	min-height: 0;
 	width: fit-content;
-	justify-self: center;
+	flex: 1 1 auto;
+	overflow: hidden;
 }
 
 #image-popout-img-wrapper::before {
@@ -517,6 +519,5 @@ p {
 	padding: 15px 0;
 	font-family: var(--accent-font);
 	font-size: clamp(1rem, 4vw, 1.5rem);
-	max-width: 90vw;
-	word-wrap: break-word;
+	flex-shrink: 0;
 }
