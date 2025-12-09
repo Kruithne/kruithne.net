@@ -236,7 +236,7 @@ document.addEventListener('keydown', function(e) {
 				}
 			}
 		} catch (err) {
-			status_el.textContent = 'Failed to send message. Please try again later.';
+			status_el.textContent = 'Failed to send message, did you already send one?';
 			status_el.className = 'error';
 		} finally {
 			submit_btn.disabled = false;
