@@ -29,10 +29,13 @@ type ThumbResult = {
 
 async function get_thumb(input: string): Promise<ThumbResult> {
 	// "static/images/test/blah.png?width=530&popout" using URL query params
+	// Optional: crop=298 to crop to height 298, cropy=50 to start crop 50px from top
 	const [image_path, query_string] = input.split('?');
 	const params = new URLSearchParams(query_string);
 
 	const width = parseInt(params.get('width') ?? '', 10);
+	const crop = parseInt(params.get('crop') ?? '', 10);
+	const cropy = parseInt(params.get('cropy') ?? '0', 10);
 	const popout = params.has('popout');
 	const title = params.get('title');
 
@@ -42,7 +45,10 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 	const relative_path = image_path.replace(/^static\/images\//, ''); // test/blah.png
 	const ext_idx = relative_path.lastIndexOf('.');
 	const path_without_ext = relative_path.substring(0, ext_idx); // test/blah
-	const thumb_path = `static/images/thumbs/${path_without_ext}_${width}.webp`;
+
+	// Include crop params in thumb filename if cropping
+	const crop_suffix = crop && !isNaN(crop) ? `_c${crop}${cropy ? `y${cropy}` : ''}` : '';
+	const thumb_path = `static/images/thumbs/${path_without_ext}_${width}${crop_suffix}.webp`;
 
 	try {
 		await fs.access(thumb_path);
@@ -50,7 +56,13 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 		const thumb_dir = path.dirname(thumb_path);
 		await fs.mkdir(thumb_dir, { recursive: true });
 
-		execSync(`ffmpeg -i "${image_path}" -vf "scale=${width}:-1" -lossless 1 -y "${thumb_path}"`, {
+		let vf_filter = `scale=${width}:-1`;
+		if (crop && !isNaN(crop)) {
+			// Crop to specified height, width stays as scaled, starting at cropy offset
+			vf_filter += `,crop=${width}:${crop}:0:${cropy}`;
+		}
+
+		execSync(`ffmpeg -i "${image_path}" -vf "${vf_filter}" -lossless 1 -y "${thumb_path}"`, {
 			stdio: 'pipe'
 		});
 	}
