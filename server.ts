@@ -242,9 +242,72 @@ async function load_devlog_posts() {
 await load_devlog_posts();
 
 function generate_post_list(): string {
-	return devlog_posts.map(post =>
-		`<li><a href="${post.slug}">${post.title}<time>${post.date}</time></a></li>`
-	).join('\n');
+	let html = '';
+	let current_year = '';
+
+	for (const post of devlog_posts) {
+		const year = new Date(post.date_sort).getFullYear().toString();
+
+		if (year !== current_year) {
+			if (current_year !== '')
+				html += '</ul>\n<hr>\n';
+
+			html += `<h2>${year}</h2>\n<ul class="post-list">\n`;
+			current_year = year;
+		}
+
+		html += `<li><a href="${post.slug}">${post.title}<time>${post.date}</time></a></li>\n`;
+	}
+
+	if (current_year !== '')
+		html += '</ul>';
+
+	return html;
+}
+
+function generate_post_nav(current_slug: string): string {
+	const index = devlog_posts.findIndex(p => p.slug === current_slug);
+	if (index === -1)
+		return '';
+
+	// Posts are sorted newest first, so:
+	// - "newer" post is at index - 1
+	// - "older" post is at index + 1
+	const newer = index > 0 ? devlog_posts[index - 1] : null;
+	const older = index < devlog_posts.length - 1 ? devlog_posts[index + 1] : null;
+
+	if (!newer && !older)
+		return '';
+
+	let html = '<nav class="post-nav">';
+
+	if (older)
+		html += `<a href="${older.slug}" class="post-nav-older">&lt;&lt; ${older.title}</a>`;
+	else
+		html += '<span class="post-nav-spacer"></span>';
+
+	if (newer)
+		html += `<a href="${newer.slug}" class="post-nav-newer">${newer.title} &gt;&gt;</a>`;
+
+	html += '</nav>';
+	return html;
+}
+
+async function generate_latest_post(): Promise<string> {
+	if (devlog_posts.length === 0)
+		return '';
+
+	const latest = devlog_posts[0];
+	const file_path = path.join(PAGE_DIR, `${latest.slug}.html`);
+	const content = await Bun.file(file_path).text();
+
+	// Parse the post content with template substitutions
+	const rendered = await spooder.parse_template(content, {
+		post_nav: () => generate_post_nav(latest.slug),
+		...global_sub_table
+	}, true);
+
+	return rendered;
 }
 // endregion
 
@@ -280,6 +343,8 @@ await (async () => {
 				{
 					page_title,
 					post_list: generate_post_list,
+					post_nav: () => generate_post_nav(slug),
+					latest_post: generate_latest_post,
 					...global_sub_table
 				},
 				true
