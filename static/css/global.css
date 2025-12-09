@@ -87,6 +87,16 @@ a {
 	text-decoration: none;
 }
 
+/* Content links (links within paragraphs/text) */
+p a, section a:not(.post-list a):not(#nav-links a):not(#footer-icons a) {
+	color: #f0c040;
+}
+
+p a:hover, section a:not(.post-list a):not(#nav-links a):not(#footer-icons a):hover {
+	color: black;
+	background-color: white;
+}
+
 #nav-overlay {
 	display: none;
 	position: fixed;
