@@ -1,7 +1,10 @@
 import * as spooder from 'spooder';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
 
 // region constants
 const PAGE_DIR = './html/pages';
@@ -10,6 +13,48 @@ const PAGE_INDEX = '/index';
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 5 hours
 const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
+// endregion
+
+// region thumbnail queue
+const thumb_queue: Map<string, { cmd: string, thumb_path: string }> = new Map();
+const thumb_processing: Set<string> = new Set();
+let request_has_pending_thumbs = false;
+
+async function process_thumb_queue() {
+	for (const [key, job] of thumb_queue) {
+		if (thumb_processing.has(key))
+			continue;
+
+		thumb_processing.add(key);
+		thumb_queue.delete(key);
+
+		try {
+			const thumb_dir = path.dirname(job.thumb_path);
+			await fs.mkdir(thumb_dir, { recursive: true });
+			await execAsync(job.cmd);
+		} catch (err) {
+			spooder.caution(`Failed to generate thumbnail: ${key}`, err);
+		} finally {
+			thumb_processing.delete(key);
+		}
+
+		// process next item
+		setImmediate(process_thumb_queue);
+		return;
+	}
+}
+
+function queue_thumb(key: string, cmd: string, thumb_path: string) {
+	if (!thumb_queue.has(key) && !thumb_processing.has(key)) {
+		thumb_queue.set(key, { cmd, thumb_path });
+		setImmediate(process_thumb_queue);
+	}
+	request_has_pending_thumbs = true;
+}
+
+function is_thumb_ready(key: string): boolean {
+	return !thumb_queue.has(key) && !thumb_processing.has(key);
+}
 // endregion
 
 // region bootstrap
@@ -21,10 +66,13 @@ if (process.env.SPOODER_ENV !== 'dev') {
 }
 
 type ThumbResult = {
-	thumb_src: string;
+	thumb_src: string | null;
 	full_src: string;
 	popout: boolean;
 	title: string | null;
+	pending_key: string | null;
+	width: number;
+	height: number | null;
 };
 
 async function get_thumb(input: string): Promise<ThumbResult> {
@@ -50,32 +98,45 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 	const crop_suffix = crop && !isNaN(crop) ? `_c${crop}${cropy ? `y${cropy}` : ''}` : '';
 	const thumb_path = `static/images/thumbs/${path_without_ext}_${width}${crop_suffix}.webp`;
 
-	try {
-		await fs.access(thumb_path);
-	} catch {
-		const thumb_dir = path.dirname(thumb_path);
-		await fs.mkdir(thumb_dir, { recursive: true });
-
-		let vf_filter = `scale=${width}:-1`;
-		if (crop && !isNaN(crop)) {
-			// Crop to specified height, width stays as scaled, starting at cropy offset
-			vf_filter += `,crop=${width}:${crop}:0:${cropy}`;
-		}
-
-		execSync(`ffmpeg -i "${image_path}" -vf "${vf_filter}" -lossless 1 -y "${thumb_path}"`, {
-			stdio: 'pipe'
-		});
-	}
-
 	// get the hash from the ORIGINAL image (not the thumb)
 	const hash_table = spooder.cache_bust_get_hash_table();
 	const original_hash = hash_table[image_path] ?? '';
 
-	return {
-		thumb_src: `${thumb_path}?v=${original_hash}`,
+	const base_result = {
 		full_src: `${image_path}?v=${original_hash}`,
 		popout,
-		title
+		title,
+		width,
+		height: crop && !isNaN(crop) ? crop : null
+	};
+
+	let thumb_exists = false;
+	try {
+		await fs.access(thumb_path);
+		thumb_exists = true;
+	} catch {
+		// thumb doesn't exist, queue it
+		let vf_filter = `scale=${width}:-1`;
+		if (crop && !isNaN(crop))
+			vf_filter += `,crop=${width}:${crop}:0:${cropy}`;
+
+		const cmd = `ffmpeg -i "${image_path}" -vf "${vf_filter}" -lossless 1 -y "${thumb_path}"`;
+		queue_thumb(thumb_path, cmd, thumb_path);
+	}
+
+	if (thumb_exists) {
+		return {
+			...base_result,
+			thumb_src: `${thumb_path}?v=${original_hash}`,
+			pending_key: null
+		};
+	}
+
+	// return placeholder result
+	return {
+		...base_result,
+		thumb_src: null,
+		pending_key: thumb_path
 	};
 }
 
@@ -83,9 +144,19 @@ const global_sub_table = {
 	cache_bust: spooder.cache_bust,
 	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
 	thumb: async (input: string) => {
-		const { thumb_src, full_src, popout, title } = await get_thumb(input);
+		const { thumb_src, full_src, popout, title, pending_key, width, height } = await get_thumb(input);
 		const title_attr = title ? ` title="${title}"` : '';
 		const title_data = title ? ` data-title="${title}"` : '';
+
+		if (pending_key) {
+			// thumbnail is being generated, return placeholder
+			const style = `width:${width}px;${height ? `height:${height}px;` : `aspect-ratio:16/9;`}`;
+			const pending_data = ` data-pending-thumb="${pending_key}" data-thumb-full-src="/${full_src}"`;
+			if (popout)
+				return `<div class="image image-popout image-pending cursor-pointer"${title_data}${pending_data} style="${style}"></div>`;
+			return `<div class="image image-pending"${pending_data} style="${style}"></div>`;
+		}
+
 		if (popout)
 			return `<div class="image image-popout cursor-pointer" data-full-src="/${full_src}"${title_data}><img src="/${thumb_src}"${title_attr}></div>`;
 		return `<div class="image"><img src="/${thumb_src}"${title_attr}></div>`;
@@ -134,21 +205,37 @@ await (async () => {
 		if (slug === PAGE_INDEX)
 			slug = '/';
 
-		server.route(slug, (req, url) => {
-			return cache.request(req, slug, async () => {
-				const content = await Bun.file(page_path).text();
-				const h1_match = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-				const page_title = h1_match?.[1] ?? PAGE_DEFAULT_TITLE;
+		server.route(slug, async (req, url) => {
+			// check cache first - if entry exists and valid, use cache.request()
+			const cached_entry = cache.entries.get(slug);
+			if (cached_entry && (Date.now() - cached_entry.cached_ts < CACHE_TTL)) {
+				return cache.request(req, slug, () => cached_entry.content);
+			}
 
-				return await spooder.parse_template(
-					await template_page(content),
-					{
-						page_title,
-						...global_sub_table
-					},
-					true
-				);
-			});
+			// reset pending flag before parsing
+			request_has_pending_thumbs = false;
+
+			const content = await Bun.file(page_path).text();
+			const h1_match = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+			const page_title = h1_match?.[1] ?? PAGE_DEFAULT_TITLE;
+
+			const rendered = await spooder.parse_template(
+				await template_page(content),
+				{
+					page_title,
+					...global_sub_table
+				},
+				true
+			);
+
+			// only cache if no pending thumbnails
+			if (request_has_pending_thumbs) {
+				return new Response(rendered, {
+					headers: { 'Content-Type': 'text/html; charset=utf-8' }
+				});
+			}
+
+			return cache.request(req, slug, () => rendered);
 		});
 	}
 })();
@@ -198,6 +285,43 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 server.route('/home/files/patreon/*', (req, url) => {
 	const path_suffix = url.pathname.slice('/home/files/patreon/'.length);
 	return Response.redirect(`https://patreon.kruithne.net/files/${path_suffix}`, 301);
+});
+// endregion
+
+// region thumb-status
+server.route('/thumb-status', async (req, url) => {
+	const keys = url.searchParams.get('keys');
+	if (!keys)
+		return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+
+	const key_list = keys.split(',');
+	const hash_table = spooder.cache_bust_get_hash_table();
+	const result: Record<string, string | false> = {};
+
+	for (const key of key_list) {
+		if (is_thumb_ready(key)) {
+			// find original image path to get hash
+			// key is like: static/images/thumbs/artwork/foo_530.webp
+			// we need: static/images/artwork/foo.png (but we don't know the extension)
+			// instead, just check if file exists and return a simple cache bust
+			try {
+				await fs.access(key);
+				const thumb_hash = hash_table[key] ?? Date.now().toString(36);
+				result[key] = `/${key}?v=${thumb_hash}`;
+			} catch {
+				result[key] = false;
+			}
+		} else {
+			result[key] = false;
+		}
+	}
+
+	return new Response(JSON.stringify(result), {
+		headers: {
+			'Content-Type': 'application/json',
+			'Cache-Control': 'no-store'
+		}
+	});
 });
 // endregion
 

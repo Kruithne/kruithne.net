@@ -427,6 +427,23 @@ p {
 	cursor: var(--cursor-pointer);
 }
 
+.image-pending {
+	background: linear-gradient(
+		90deg,
+		#2a2a2a 0%,
+		#3a3a3a 50%,
+		#2a2a2a 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite;
+	border-radius: var(--content-border-radius);
+}
+
+@keyframes shimmer {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
 #image-popout-overlay {
 	display: none;
 	position: fixed;

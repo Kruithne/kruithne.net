@@ -61,3 +61,62 @@ document.addEventListener('keydown', function(e) {
 	if (e.key === 'Escape' && imagePopoutOverlay.classList.contains('open'))
 		closeImagePopout();
 });
+
+// Pending thumbnail polling
+(function() {
+	const pendingImages = document.querySelectorAll('[data-pending-thumb]');
+	if (pendingImages.length === 0)
+		return;
+
+	const pending = new Map();
+	pendingImages.forEach(el => {
+		pending.set(el.dataset.pendingThumb, el);
+	});
+
+	function pollThumbs() {
+		if (pending.size === 0)
+			return;
+
+		const keys = Array.from(pending.keys()).join(',');
+		fetch('/thumb-status?keys=' + encodeURIComponent(keys))
+			.then(res => res.json())
+			.then(result => {
+				for (const [key, src] of Object.entries(result)) {
+					if (src === false)
+						continue;
+
+					const el = pending.get(key);
+					if (!el)
+						continue;
+
+					// create and insert image
+					const img = document.createElement('img');
+					img.src = src;
+					img.onload = function() {
+						el.appendChild(img);
+						el.classList.remove('image-pending');
+						el.style.width = '';
+						el.style.height = '';
+						el.style.aspectRatio = '';
+
+						// enable popout if applicable
+						const fullSrc = el.dataset.thumbFullSrc;
+						if (fullSrc && el.classList.contains('image-popout'))
+							el.dataset.fullSrc = fullSrc;
+					};
+
+					pending.delete(key);
+				}
+
+				if (pending.size > 0)
+					setTimeout(pollThumbs, 1000);
+			})
+			.catch(() => {
+				// retry on error
+				setTimeout(pollThumbs, 1000);
+			});
+	}
+
+	// start polling
+	setTimeout(pollThumbs, 500);
+})();
