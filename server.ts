@@ -33,7 +33,7 @@ async function process_thumb_queue() {
 			await fs.mkdir(thumb_dir, { recursive: true });
 			await execAsync(job.cmd);
 		} catch (err) {
-			spooder.caution(`Failed to generate thumbnail: ${key}`, err);
+			spooder.caution(`failed to generate thumbnail`, { key, err });
 		} finally {
 			thumb_processing.delete(key);
 		}
