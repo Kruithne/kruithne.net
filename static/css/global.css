@@ -670,3 +670,55 @@ textarea {
 		align-self: stretch;
 	}
 }
+
+/* Post List */
+.post-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.post-list li {
+	display: block;
+	background: #2a2a2a;
+	border-radius: var(--form-border-radius);
+}
+
+.post-list li:hover {
+	background: #3a3a3a;
+}
+
+.post-list a {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 20px;
+	padding: 15px 20px;
+}
+
+.post-list time {
+	font-size: 0.9rem;
+	opacity: 0.7;
+	white-space: nowrap;
+}
+
+@media (max-width: 999px) {
+	.post-list a {
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.post-list time {
+		font-size: 0.8rem;
+	}
+}
+
+/* Post page date */
+h1 + time {
+	display: block;
+	opacity: 0.7;
+	margin-bottom: 1em;
+}

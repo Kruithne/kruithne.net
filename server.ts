@@ -194,15 +194,70 @@ function error_page(status_code: number) {
 	}
 }
 
+// region devlog posts
+type PostMeta = {
+	slug: string;
+	title: string;
+	date: string;
+	date_sort: number;
+};
+
+const devlog_posts: PostMeta[] = [];
+
+async function load_devlog_posts() {
+	const posts_dir = path.join(PAGE_DIR, 'posts');
+	const files = await fs.readdir(posts_dir);
+
+	for (const file of files) {
+		if (!file.endsWith('.html'))
+			continue;
+
+		const file_path = path.join(posts_dir, file);
+
+		// read first 500 bytes, should be enough to get title and date
+		const handle = await fs.open(file_path, 'r');
+		const buffer = Buffer.alloc(500);
+		await handle.read(buffer, 0, 500, 0);
+		await handle.close();
+
+		const content = buffer.toString('utf-8');
+		const title_match = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+		const date_match = content.match(/<time[^>]*datetime="([^"]+)"[^>]*>([^<]+)<\/time>/i);
+
+		if (!title_match || !date_match)
+			continue;
+
+		devlog_posts.push({
+			slug: '/posts/' + path.basename(file, '.html'),
+			title: title_match[1],
+			date: date_match[2],
+			date_sort: new Date(date_match[1]).getTime()
+		});
+	}
+
+	// Sort by date, newest first
+	devlog_posts.sort((a, b) => b.date_sort - a.date_sort);
+}
+
+await load_devlog_posts();
+
+function generate_post_list(): string {
+	return devlog_posts.map(post =>
+		`<li><a href="${post.slug}">${post.title}<time>${post.date}</time></a></li>`
+	).join('\n');
+}
+// endregion
+
 await (async () => {
-	const pages = await fs.readdir(PAGE_DIR);
+	const pages = await fs.readdir(PAGE_DIR, { recursive: true });
 	for (const page of pages) {
 		if (!page.endsWith('.html'))
 			continue;
 
 		const page_path = path.join(PAGE_DIR, page);
 
-		let slug = '/' + path.basename(page, path.extname(page));
+		// Convert path separators to forward slashes for URL and remove .html extension
+		let slug = '/' + page.replace(/\\/g, '/').replace(/\.html$/, '');
 		if (slug === PAGE_INDEX)
 			slug = '/';
 
@@ -224,6 +279,7 @@ await (async () => {
 				await template_page(content),
 				{
 					page_title,
+					post_list: generate_post_list,
 					...global_sub_table
 				},
 				true
