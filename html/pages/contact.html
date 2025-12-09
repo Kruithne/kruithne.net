@@ -1,0 +1,30 @@
+<h1>Contact</h1>
+<p>If you'd like to get in touch with me for any reason, please fill out the form below and I'll get back to you as soon as I can.</p>
+<p>If you're looking for technical support for wow.export, please consider using the <a href="https://discord.gg/kC3EzAYBtf" target="_blank">dedicated support Discord channel</a> instead.</p>
+<div class="spacer"></div>
+<form id="contact-form" novalidate>
+	<div class="form-group">
+		<label for="contact-name">Name</label>
+		<input type="text" id="contact-name" name="name" required minlength="2" maxlength="100" autocomplete="name">
+		<span class="form-error"></span>
+	</div>
+	<div class="form-group">
+		<label for="contact-email">Email</label>
+		<input type="email" id="contact-email" name="email" required maxlength="254" autocomplete="email">
+		<span class="form-error"></span>
+	</div>
+	<div class="form-group">
+		<label for="contact-subject">Subject</label>
+		<input type="text" id="contact-subject" name="subject" required minlength="3" maxlength="200">
+		<span class="form-error"></span>
+	</div>
+	<div class="form-group">
+		<label for="contact-message">Message</label>
+		<textarea id="contact-message" name="message" required minlength="10" maxlength="5000" rows="6"></textarea>
+		<span class="form-error"></span>
+	</div>
+	<div class="button-tray">
+		<button type="submit" id="contact-submit">Send Message</button>
+	</div>
+	<div id="contact-status"></div>
+</form>

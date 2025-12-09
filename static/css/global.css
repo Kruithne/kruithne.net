@@ -64,6 +64,7 @@
 	--border-colour: white;
 	--content-border: 5px solid var(--border-colour);
 	--content-border-radius: 20px;
+	--form-border-radius: 10px;
 	--content-bg-colour: #1a1a1a;
 	--accent-font: "Atma", system-ui;
 	--content-font: "Google Sans Code", monospace;
@@ -541,4 +542,131 @@ p {
 	font-family: var(--accent-font);
 	font-size: clamp(1rem, 4vw, 1.5rem);
 	flex-shrink: 0;
+}
+
+/* Contact Form */
+#contact-form {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+	max-width: 600px;
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.form-group label {
+	font-family: var(--accent-font);
+	font-size: 1.2rem;
+}
+
+.form-group input,
+.form-group textarea {
+	font-family: var(--content-font);
+	font-size: 1rem;
+	padding: 12px 15px;
+	background: #2a2a2a;
+	border: none;
+	border-radius: var(--form-border-radius);
+	color: var(--font-colour);
+	outline: none;
+	position: relative;
+}
+
+.form-group input,
+.form-group textarea {
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 1);
+}
+
+.form-group textarea {
+	min-height: 120px;
+}
+
+textarea {
+	resize: none;
+}
+
+.form-group input.error,
+.form-group textarea.error {
+	box-shadow: 0 0 0 3px rgba(255, 100, 100, 0.4);
+}
+
+.form-error:empty {
+	display: none;
+}
+
+.form-error {
+	color: #ff6b6b;
+	font-size: 0.85rem;
+}
+
+.button-tray {
+	margin-top: 10px;
+}
+
+#contact-submit {
+	font-family: var(--accent-font);
+	font-size: 1.3rem;
+	padding: 15px 30px;
+	background: transparent;
+	border: none;
+	color: var(--font-colour);
+	cursor: var(--cursor-pointer);
+	align-self: flex-start;
+	position: relative;
+	isolation: isolate;
+}
+
+#contact-submit::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: var(--content-border);
+	transform: rotate(-2deg) skewX(-3deg);
+	pointer-events: none;
+	z-index: -1;
+}
+
+#contact-submit:hover::before {
+	background: white;
+}
+
+#contact-submit:hover {
+	color: black;
+}
+
+#contact-submit:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+#contact-status {
+	font-size: 1rem;
+	min-height: 1.5em;
+}
+
+#contact-status.success {
+	color: #6bff6b;
+}
+
+#contact-status.error {
+	color: #ff6b6b;
+}
+
+@media (max-width: 999px) {
+	#contact-form {
+		max-width: 100%;
+	}
+
+	#contact-submit {
+		align-self: stretch;
+	}
 }

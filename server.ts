@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { smtp_send } from './smtp';
 
 const execAsync = promisify(exec);
 
@@ -322,6 +323,148 @@ server.route('/thumb-status', async (req, url) => {
 			'Cache-Control': 'no-store'
 		}
 	});
+});
+// endregion
+
+// region contact form
+const CONTACT_RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+const CONTACT_RATE_LIMIT_MAX = 2; // max 2 requests per hour per IP
+const contact_rate_limit: Map<string, number[]> = new Map();
+
+function get_client_ip(req: Request): string {
+	const forwarded = req.headers.get('x-forwarded-for');
+	if (forwarded) {
+		const first = forwarded.split(',')[0].trim();
+		if (first)
+			return first;
+	}
+
+	return 'unknown';
+}
+
+function is_rate_limited(ip: string): boolean {
+	const now = Date.now();
+	const timestamps = contact_rate_limit.get(ip) ?? [];
+
+	// filter out old timestamps
+	const recent = timestamps.filter(ts => now - ts < CONTACT_RATE_LIMIT_WINDOW);
+
+	if (recent.length >= CONTACT_RATE_LIMIT_MAX)
+		return true;
+
+	recent.push(now);
+	contact_rate_limit.set(ip, recent);
+	return false;
+}
+
+type ContactFormData = {
+	name: string;
+	email: string;
+	subject: string;
+	message: string;
+};
+
+function validate_contact_form(data: unknown): { valid: true; data: ContactFormData } | { valid: false; error: string; field?: string } {
+	if (!data || typeof data !== 'object')
+		return { valid: false, error: 'Invalid request body' };
+
+	const { name, email, subject, message } = data as Record<string, unknown>;
+
+	// validate name
+	if (typeof name !== 'string' || name.length < 2)
+		return { valid: false, error: 'Name must be at least 2 characters', field: 'name' };
+
+	if (name.length > 100)
+		return { valid: false, error: 'Name must be less than 100 characters', field: 'name' };
+
+	// validate email
+	if (typeof email !== 'string' || !email)
+		return { valid: false, error: 'Email is required', field: 'email' };
+
+	if (email.length > 254)
+		return { valid: false, error: 'Email must be less than 254 characters', field: 'email' };
+
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+		return { valid: false, error: 'Please enter a valid email address', field: 'email' };
+
+	// validate subject
+	if (typeof subject !== 'string' || subject.length < 3)
+		return { valid: false, error: 'Subject must be at least 3 characters', field: 'subject' };
+
+	if (subject.length > 200)
+		return { valid: false, error: 'Subject must be less than 200 characters', field: 'subject' };
+
+	// validate message
+	if (typeof message !== 'string' || message.length < 10)
+		return { valid: false, error: 'Message must be at least 10 characters', field: 'message' };
+	
+	if (message.length > 5000)
+		return { valid: false, error: 'Message must be less than 5000 characters', field: 'message' };
+
+	return {
+		valid: true,
+		data: { name, email, subject, message }
+	};
+}
+
+function escape_html(str: string): string {
+	return str
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+server.json('/api/contact', async (req, url, json) => {
+	const ip = get_client_ip(req);
+	if (is_rate_limited(ip))
+		return spooder.HTTP_STATUS_CODE.TooManyRequests_429;
+
+	const validation = validate_contact_form(json);
+	if (!validation.valid)
+		return { status: 400, error: validation.error, field: validation.field };
+
+	const { name, email, subject, message } = validation.data;
+
+	// check required env vars
+	const smtp_uri = process.env.SMTP_URI;
+	const contact_email = process.env.CONTACT_EMAIL;
+	const smtp_from = process.env.SMTP_FROM;
+
+	if (!smtp_uri || !contact_email || !smtp_from) {
+		spooder.caution('missing SMTP configuration');
+		return spooder.HTTP_STATUS_CODE.InternalServerError_500;
+	}
+
+	// build email content
+	const template_data = {
+		name: escape_html(name),
+		email: escape_html(email),
+		subject: escape_html(subject),
+		message: escape_html(message),
+		ip: escape_html(ip),
+		time: new Date().toISOString()
+	};
+
+	const email_template = await Bun.file('./html/email/contact.html').text();
+	const html_content = await spooder.parse_template(email_template, template_data, false);
+
+	try {
+		await smtp_send({
+			uri: smtp_uri,
+			from: smtp_from,
+			to: contact_email,
+			subject: `[Contact Form] ${subject}`,
+			text: '',
+			html: html_content
+		});
+
+		return { success: true };
+	} catch (err) {
+		spooder.caution(`failed to send contact form`, { err });
+		return spooder.HTTP_STATUS_CODE.InternalServerError_500;
+	}
 });
 // endregion
 
