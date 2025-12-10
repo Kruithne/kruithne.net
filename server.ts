@@ -923,7 +923,7 @@ async function get_like_count(post_slug: string): Promise<number> {
 
 async function generate_like_button(post_slug: string): Promise<string> {
 	const count = await get_like_count(post_slug);
-	return `<div class="like-container"><span class="like-label">Liked like? Leave a cheese:</span> <button class="like-button" data-post-slug="${post_slug}"><img src="/static/favicon-96x96.png" alt="Like" width="16" height="16"><span class="like-count">${count}</span></button></div>`;
+	return `<div class="like-container"><span class="like-label">Liked this? Leave a cheese:</span> <button class="like-button" data-post-slug="${post_slug}"><img src="/static/favicon-96x96.png" alt="Like" width="16" height="16"><span class="like-count">${count}</span></button></div>`;
 }
 
 // toggle like for a post
