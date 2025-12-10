@@ -244,3 +244,154 @@ document.addEventListener('keydown', function(e) {
 		}
 	});
 })();
+
+// Comment form handling
+(function() {
+	const form = document.getElementById('comment-form');
+	if (!form)
+		return;
+
+	const submit_btn = document.getElementById('comment-submit');
+	const status_el = document.getElementById('comment-status');
+	const post_slug_input = form.querySelector('input[name="post_slug"]');
+
+	const fields = {
+		display_name: {
+			el: document.getElementById('comment-name'),
+			validate: (v) => {
+				if (!v || v.length < 2)
+					return 'Name must be at least 2 characters';
+
+				if (v.length > 100)
+					return 'Name must be less than 100 characters';
+
+				return null;
+			}
+		},
+		email: {
+			el: document.getElementById('comment-email'),
+			validate: (v) => {
+				if (!v)
+					return'Email is required';
+
+				if (v.length > 254)
+					return 'Email must be less than 254 characters';
+
+				if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+					return 'Please enter a valid email address';
+
+				return null;
+			}
+		},
+		content: {
+			el: document.getElementById('comment-content'),
+			validate: (v) => {
+				if (!v || v.length < 3)
+					return 'Comment must be at least 3 characters';
+
+				if (v.length > 2000)
+					return 'Comment must be less than 2000 characters';
+
+				return null;
+			}
+		}
+	};
+
+	function show_error(field, message) {
+		const error_el = field.el.parentElement.querySelector('.form-error');
+		field.el.classList.add('error');
+
+		if (error_el)
+			error_el.textContent = message;
+	}
+
+	function clear_error(field) {
+		const error_el = field.el.parentElement.querySelector('.form-error');
+		field.el.classList.remove('error');
+		if (error_el)
+			error_el.textContent = '';
+	}
+
+	function validate_all() {
+		let valid = true;
+		for (const [name, field] of Object.entries(fields)) {
+			const error = field.validate(field.el.value.trim());
+			if (error) {
+				show_error(field, error);
+				valid = false;
+			} else {
+				clear_error(field);
+			}
+		}
+		return valid;
+	}
+
+	// Clear errors on input
+	for (const field of Object.values(fields)) {
+		field.el.addEventListener('input', () => clear_error(field));
+	}
+
+	// Check for success message from redirect
+	const params = new URLSearchParams(window.location.search);
+	if (params.get('comment_posted') === '1') {
+		status_el.textContent = 'Your comment has been posted!';
+		status_el.className = 'success';
+		// clean up URL
+		history.replaceState(null, '', window.location.pathname);
+	}
+
+	form.addEventListener('submit', async function(e) {
+		e.preventDefault();
+
+		status_el.textContent = '';
+		status_el.className = '';
+
+		if (!validate_all())
+			return;
+
+		submit_btn.disabled = true;
+		submit_btn.textContent = 'Posting...';
+
+		try {
+			const res = await fetch('/api/comments/submit', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					post_slug: post_slug_input.value,
+					display_name: fields.display_name.el.value.trim(),
+					email: fields.email.el.value.trim(),
+					content: fields.content.el.value.trim()
+				})
+			});
+
+			const data = await res.json();
+
+			if (res.ok) {
+				if (data.verified) {
+					// comment posted directly, reload to show it
+					status_el.textContent = 'Comment posted!';
+					status_el.className = 'success';
+					setTimeout(() => window.location.reload(), 1000);
+				} else {
+					// verification email sent
+					status_el.textContent = data.message || 'Check your email to verify and post your comment.';
+					status_el.className = 'success';
+					form.reset();
+				}
+			} else {
+				status_el.textContent = data.error || 'Something went wrong. Please try again.';
+				status_el.className = 'error';
+
+				if (data.field && fields[data.field]) {
+					show_error(fields[data.field], data.error);
+				}
+			}
+		} catch (err) {
+			status_el.textContent = 'Failed to post comment. Please try again.';
+			status_el.className = 'error';
+		} finally {
+			submit_btn.disabled = false;
+			submit_btn.textContent = 'Post Comment';
+		}
+	});
+})();

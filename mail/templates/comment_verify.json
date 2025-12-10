@@ -1,0 +1,10 @@
+{
+	"subject": "Verify your email to comment",
+	"content": [
+		"Hi %display_name%,",
+		"Click the link below to verify your email and post your comment:",
+		"<a href=\"https://kruithne.net/api/comments/verify?token=%token%\" style=\"color: #f0c040;\">Click here to verify and post your comment</a>",
+		"This link will expire in 1 hour.",
+		"If you didn't request this, you can safely ignore this email."
+	]
+}
