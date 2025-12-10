@@ -307,6 +307,7 @@ async function generate_latest_post(): Promise<string> {
 	const rendered = await spooder.parse_template(content, {
 		post_nav: () => generate_post_nav(latest.slug),
 		comments: () => '', // no comments on front page
+		likes: () => generate_like_button(latest.slug),
 		...global_sub_table
 	}, true);
 
@@ -353,6 +354,7 @@ await (async () => {
 					post_nav: () => generate_post_nav(slug),
 					latest_post: generate_latest_post,
 					comments: is_post_page ? () => get_comments_for_post(slug) : () => '',
+					likes: is_post_page ? () => generate_like_button(slug) : () => '',
 					...global_sub_table
 				},
 				true
@@ -912,6 +914,64 @@ async function get_comments_for_post(post_slug: string): Promise<string> {
 	html += '</div>';
 	return html;
 }
+
+// like button for posts
+async function get_like_count(post_slug: string): Promise<number> {
+	const [result] = await db`SELECT COUNT(*) as count FROM post_likes WHERE post_slug = ${post_slug}`;
+	return Number(result?.count ?? 0);
+}
+
+async function generate_like_button(post_slug: string): Promise<string> {
+	const count = await get_like_count(post_slug);
+	return `<div class="like-container"><span class="like-label">Liked like? Leave a cheese:</span> <button class="like-button" data-post-slug="${post_slug}"><img src="/static/favicon-96x96.png" alt="Like" width="16" height="16"><span class="like-count">${count}</span></button></div>`;
+}
+
+// toggle like for a post
+server.json('/api/likes/toggle', async (req, url, json) => {
+	if (!json || typeof json !== 'object')
+		return { status: 400, error: 'Invalid request' };
+
+	const { post_slug, visitor_id } = json as Record<string, unknown>;
+
+	if (typeof post_slug !== 'string' || !post_slug.startsWith('/posts/'))
+		return { status: 400, error: 'Invalid post' };
+
+	if (typeof visitor_id !== 'string' || !/^[a-f0-9]{32}$/.test(visitor_id))
+		return { status: 400, error: 'Invalid visitor ID' };
+
+	// check if already liked
+	const [existing] = await db`SELECT 1 FROM post_likes WHERE post_slug = ${post_slug} AND visitor_id = ${visitor_id}`;
+
+	if (existing) {
+		// unlike
+		await db`DELETE FROM post_likes WHERE post_slug = ${post_slug} AND visitor_id = ${visitor_id}`;
+	} else {
+		// like
+		await db`INSERT INTO post_likes (post_slug, visitor_id) VALUES (${post_slug}, ${visitor_id})`;
+	}
+
+	const count = await get_like_count(post_slug);
+	return { success: true, liked: !existing, count };
+});
+
+// get like status for a post
+server.json('/api/likes/status', async (req, url, json) => {
+	if (!json || typeof json !== 'object')
+		return { status: 400, error: 'Invalid request' };
+
+	const { post_slug, visitor_id } = json as Record<string, unknown>;
+
+	if (typeof post_slug !== 'string' || !post_slug.startsWith('/posts/'))
+		return { status: 400, error: 'Invalid post' };
+
+	if (typeof visitor_id !== 'string' || !/^[a-f0-9]{32}$/.test(visitor_id))
+		return { status: 400, error: 'Invalid visitor ID' };
+
+	const [existing] = await db`SELECT 1 FROM post_likes WHERE post_slug = ${post_slug} AND visitor_id = ${visitor_id}`;
+	const count = await get_like_count(post_slug);
+
+	return { liked: !!existing, count };
+});
 // endregion
 
 // region webhooks

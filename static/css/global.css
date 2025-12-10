@@ -62,6 +62,7 @@
 	--bg-fade-size: 30%;
 	--font-colour: white;
 	--border-colour: white;
+	--link-colour: #f0c040;
 	--content-border: 5px solid var(--border-colour);
 	--content-border-radius: 20px;
 	--form-border-radius: 10px;
@@ -89,7 +90,7 @@ a {
 
 /* Content links (links within paragraphs/text) */
 p a, section a:not(.post-list a):not(#nav-links a):not(#footer-icons a) {
-	color: #f0c040;
+	color: var(--link-colour);
 }
 
 p a:hover, section a:not(.post-list a):not(#nav-links a):not(#footer-icons a):hover {
@@ -969,4 +970,41 @@ a.view-post-link {
 
 a.view-post-link:hover {
 	opacity: 1;
+}
+
+/* Like Button */
+.like-container {
+	margin-top: 20px;
+}
+
+.like-label {
+	color: var(--link-colour);
+}
+
+.like-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	background: #2a2a2a;
+	border: none;
+	border-radius: 20px;
+	color: var(--font-colour);
+	font-family: var(--content-font);
+	font-size: 0.9rem;
+	cursor: var(--cursor-pointer);
+	transition: background 0.2s;
+	vertical-align: middle;
+}
+
+.like-button:hover {
+	background: #3a3a3a;
+}
+
+.like-button.liked {
+	background: #3a5a3a;
+}
+
+.like-button img {
+	display: block;
 }

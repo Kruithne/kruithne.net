@@ -395,3 +395,124 @@ document.addEventListener('keydown', function(e) {
 		}
 	});
 })();
+
+// Like button handling
+(function() {
+	const like_buttons = document.querySelectorAll('.like-button');
+	if (like_buttons.length === 0)
+		return;
+
+	// get or create visitor ID (stored in localStorage)
+	function get_visitor_id() {
+		let id = localStorage.getItem('visitor_id');
+		if (!id) {
+			const arr = new Uint8Array(16);
+			crypto.getRandomValues(arr);
+			id = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+			localStorage.setItem('visitor_id', id);
+		}
+		return id;
+	}
+
+	// get liked posts from localStorage
+	function get_liked_posts() {
+		try {
+			return JSON.parse(localStorage.getItem('liked_posts') || '[]');
+		} catch {
+			return [];
+		}
+	}
+
+	function set_liked_posts(posts) {
+		localStorage.setItem('liked_posts', JSON.stringify(posts));
+	}
+
+	const visitor_id = get_visitor_id();
+	const liked_posts = get_liked_posts();
+	const pending_requests = new Map(); // post_slug -> timeout ID
+
+	// initialize button states from localStorage
+	like_buttons.forEach(btn => {
+		const post_slug = btn.dataset.postSlug;
+		if (liked_posts.includes(post_slug))
+			btn.classList.add('liked');
+	});
+
+	// send the actual API request
+	async function send_like_request(post_slug, desired_state) {
+		try {
+			const res = await fetch('/api/likes/toggle', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ post_slug, visitor_id })
+			});
+
+			const data = await res.json();
+
+			if (res.ok) {
+				// update all buttons for this post with server count
+				like_buttons.forEach(btn => {
+					if (btn.dataset.postSlug === post_slug) {
+						const count_el = btn.querySelector('.like-count');
+						if (count_el)
+							count_el.textContent = data.count;
+					}
+				});
+			}
+		} catch (err) {
+			// silently fail
+		}
+	}
+
+	// handle clicks
+	like_buttons.forEach(btn => {
+		btn.addEventListener('click', function() {
+			const post_slug = btn.dataset.postSlug;
+
+			// toggle visual state immediately
+			const is_now_liked = !btn.classList.contains('liked');
+
+			// update all buttons for this post
+			like_buttons.forEach(b => {
+				if (b.dataset.postSlug === post_slug) {
+					if (is_now_liked)
+						b.classList.add('liked');
+					else
+						b.classList.remove('liked');
+
+					// optimistically update count
+					const count_el = b.querySelector('.like-count');
+					if (count_el) {
+						const current = parseInt(count_el.textContent) || 0;
+						count_el.textContent = is_now_liked ? current + 1 : Math.max(0, current - 1);
+					}
+				}
+			});
+
+			// update localStorage
+			if (is_now_liked) {
+				if (!liked_posts.includes(post_slug)) {
+					liked_posts.push(post_slug);
+					set_liked_posts(liked_posts);
+				}
+			} else {
+				const idx = liked_posts.indexOf(post_slug);
+				if (idx > -1) {
+					liked_posts.splice(idx, 1);
+					set_liked_posts(liked_posts);
+				}
+			}
+
+			// debounce the API call
+			if (pending_requests.has(post_slug))
+				clearTimeout(pending_requests.get(post_slug));
+
+			const timeout_id = setTimeout(() => {
+				pending_requests.delete(post_slug);
+				send_like_request(post_slug, is_now_liked);
+			}, 1000);
+
+			pending_requests.set(post_slug, timeout_id);
+		});
+	});
+})();
