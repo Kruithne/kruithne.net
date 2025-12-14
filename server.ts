@@ -6,6 +6,7 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { smtp_send } from './smtp';
 import { bluesky_post } from './bluesky';
+import { twitter_post } from './twitter';
 import { db } from './db';
 
 const execAsync = promisify(exec);
@@ -300,8 +301,25 @@ async function trigger_bluesky(post: PostMeta): Promise<void> {
 }
 
 async function trigger_twitter(post: PostMeta): Promise<void> {
-	// placeholder for twitter integration
-	spooder.log(`[twitter] would post: ${post.title}`);
+	if (!post.description) {
+		spooder.caution(`skipping twitter for ${post.slug} - no description`);
+		return;
+	}
+
+	const post_url = `https://kruithne.net${post.slug}`;
+	const text = `${post.description}\n\n${post_url}`;
+
+	// resolve image path if present
+	let image_path: string | undefined;
+	if (post.image) {
+		// image is relative path like "static/some_image.webp"
+		image_path = post.image;
+	}
+
+	await twitter_post({
+		text,
+		image_path
+	});
 }
 
 async function trigger_mail_subscribers(post: PostMeta): Promise<void> {
