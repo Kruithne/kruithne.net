@@ -1,5 +1,8 @@
 import * as tls from 'tls';
 import * as crypto from 'crypto';
+import { log_create_logger } from 'spooder';
+
+const log = log_create_logger('smtp', '#9b48aaff');
 
 type SMTPConfig = {
 	host: string;
@@ -285,6 +288,12 @@ export function smtp_create_mailer(uri: string) {
 
 	return {
 		send: async (message: SMTPMessage): Promise<SMTPResponse> => {
+			const recipient_count = parse_email_addresses(message.to).length
+				+ (message.cc ? parse_email_addresses(message.cc).length : 0)
+				+ (message.bcc ? parse_email_addresses(message.bcc).length : 0);
+
+			log`sending {${message.subject}} to {${recipient_count} recipient${recipient_count === 1 ? '' : 's'}}`;
+
 			await ensure_connection();
 
 			if (!socket)
@@ -326,6 +335,8 @@ export function smtp_create_mailer(uri: string) {
 				const send_response = await smtp_send_command(socket, stuffed_mime + '\r\n.');
 				if (!send_response.startsWith('250'))
 					throw new Error(`message send failed: ${send_response}`);
+
+				log`{${message.subject}} -> {${send_response.trim()}} {${message_id}}`;
 
 				return {
 					accepted,
