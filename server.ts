@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { smtp_send } from './smtp';
+import { bluesky_post } from './bluesky';
 import { db } from './db';
 
 const execAsync = promisify(exec);
@@ -259,7 +260,69 @@ async function load_devlog_posts() {
 
 	// Sort by date, newest first
 	devlog_posts.sort((a, b) => b.date_sort - a.date_sort);
+
+	// check for new posts
+	for (const post of devlog_posts) {
+		const [existing] = await db`SELECT post_slug FROM published_posts WHERE post_slug = ${post.slug}`;
+		if (!existing) {
+			// new post detected, mark as published and trigger notifications
+			await db`INSERT INTO published_posts (post_slug) VALUES (${post.slug})`;
+			trigger_new_post(post);
+		}
+	}
 }
+
+// region new post triggers
+async function trigger_bluesky(post: PostMeta): Promise<void> {
+	if (!post.description) {
+		spooder.caution(`skipping bluesky for ${post.slug} - no description`);
+		return;
+	}
+
+	const post_url = `https://kruithne.net${post.slug}`;
+	const text = `${post.description}\n\n${post_url}`;
+
+	// resolve image path if present
+	let image_path: string | undefined;
+	if (post.image) {
+		// image is relative path like "static/some_image.webp"
+		image_path = post.image;
+	}
+
+	await bluesky_post({
+		text,
+		image_path,
+		image_alt: post.title
+	});
+}
+
+async function trigger_twitter(post: PostMeta): Promise<void> {
+	// placeholder for twitter integration
+	spooder.log(`[twitter] would post: ${post.title}`);
+}
+
+async function trigger_mail_subscribers(post: PostMeta): Promise<void> {
+	// placeholder for mail subscriber notifications
+	spooder.log(`[mail] would notify subscribers: ${post.title}`);
+}
+
+function trigger_new_post(post: PostMeta): void {
+	spooder.log(`new post detected: ${post.title} (${post.slug})`);
+
+	// fire all triggers async, don't block startup
+	trigger_bluesky(post).catch(err =>
+		spooder.caution(`bluesky trigger failed for ${post.slug}`, { err })
+	);
+
+	trigger_twitter(post).catch(err =>
+		spooder.caution(`twitter trigger failed for ${post.slug}`, { err })
+	);
+
+	trigger_mail_subscribers(post).catch(err =>
+		spooder.caution(`mail trigger failed for ${post.slug}`, { err })
+	);
+}
+// endregion
 
 await load_devlog_posts();
 

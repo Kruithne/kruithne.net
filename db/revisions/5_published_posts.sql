@@ -1,0 +1,4 @@
+CREATE TABLE published_posts (
+	post_slug VARCHAR(255) PRIMARY KEY,
+	published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
