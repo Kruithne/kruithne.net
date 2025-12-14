@@ -287,18 +287,7 @@ async function trigger_bluesky(post: PostMeta): Promise<void> {
 	const post_url = `https://kruithne.net${post.slug}`;
 	const text = `${post.description}\n\n${post_url}`;
 
-	// resolve image path if present
-	let image_path: string | undefined;
-	if (post.image) {
-		// image is relative path like "static/some_image.webp"
-		image_path = post.image;
-	}
-
-	await bluesky_post({
-		text,
-		image_path,
-		image_alt: post.title
-	});
+	await bluesky_post({ text });
 }
 
 async function trigger_twitter(post: PostMeta): Promise<void> {
@@ -310,17 +299,7 @@ async function trigger_twitter(post: PostMeta): Promise<void> {
 	const post_url = `https://kruithne.net${post.slug}`;
 	const text = `${post.description}\n\n${post_url}`;
 
-	// resolve image path if present
-	let image_path: string | undefined;
-	if (post.image) {
-		// image is relative path like "static/some_image.webp"
-		image_path = post.image;
-	}
-
-	await twitter_post({
-		text,
-		image_path
-	});
+	await twitter_post({ text });
 }
 
 async function trigger_discord(post: PostMeta): Promise<void> {
