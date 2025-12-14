@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { smtp_send } from './smtp';
 import { bluesky_post } from './bluesky';
 import { twitter_post } from './twitter';
+import { discord_post } from './discord';
 import { db } from './db';
 
 const execAsync = promisify(exec);
@@ -322,6 +323,27 @@ async function trigger_twitter(post: PostMeta): Promise<void> {
 	});
 }
 
+async function trigger_discord(post: PostMeta): Promise<void> {
+	if (!post.description) {
+		spooder.caution(`skipping discord for ${post.slug} - no description`);
+		return;
+	}
+
+	const post_url = `https://kruithne.net${post.slug}`;
+
+	// resolve image url if present
+	let image_url: string | undefined;
+	if (post.image)
+		image_url = `https://kruithne.net/${post.image}`;
+
+	await discord_post({
+		title: post.title,
+		description: post.description,
+		url: post_url,
+		image_url
+	});
+}
+
 async function trigger_mail_subscribers(post: PostMeta): Promise<void> {
 	if (!MAILING_LIST_SMTP_URI) {
 		spooder.log(`[mail] MAILING_LIST_SMTP_URI not configured, skipping notifications`);
@@ -361,6 +383,10 @@ function trigger_new_post(post: PostMeta): void {
 
 	trigger_twitter(post).catch(err =>
 		spooder.caution(`twitter trigger failed for ${post.slug}`, { err })
+	);
+
+	trigger_discord(post).catch(err =>
+		spooder.caution(`discord trigger failed for ${post.slug}`, { err })
 	);
 
 	trigger_mail_subscribers(post).catch(err =>
