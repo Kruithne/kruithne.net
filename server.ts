@@ -311,8 +311,8 @@ async function generate_latest_post(): Promise<string> {
 		...global_sub_table
 	}, true);
 
-	// Add link to view post for comments
-	return rendered + `<a class="view-post-link" href="${latest.slug}">View Post to Comment</a>`;
+	// Add subscribe section and link to view post for comments
+	return rendered + generate_subscribe_section() + `<a class="view-post-link" href="${latest.slug}">View Post to Comment</a>`;
 }
 // endregion
 
@@ -857,6 +857,23 @@ server.route('/api/comments/verify', async (req, url) => {
 	});
 });
 
+// subscribe section HTML (reused on front page and post pages)
+function generate_subscribe_section(): string {
+	let html = '<div class="subscribe-section">';
+	html += '<h2>Stay In The Loop</h2>';
+	html += '<p>Subscribe to receive email notifications when new posts are published.</p>';
+	html += '<form class="subscribe-form" id="subscribe-form">';
+	html += '<div class="form-group form-group-inline">';
+	html += '<input type="email" id="subscribe-email" name="email" placeholder="your@email.com" required maxlength="254">';
+	html += '<button type="submit" class="btn-skew" id="subscribe-submit">Subscribe</button>';
+	html += '</div>';
+	html += '<div class="form-error" id="subscribe-email-error"></div>';
+	html += '<div id="subscribe-status"></div>';
+	html += '</form>';
+	html += '</div>';
+	return html;
+}
+
 // get comments for a post (used by template)
 async function get_comments_for_post(post_slug: string): Promise<string> {
 	const comments = await db`
@@ -867,7 +884,9 @@ async function get_comments_for_post(post_slug: string): Promise<string> {
 		ORDER BY c.created_at ASC
 	`;
 
-	let html = '<div class="comments-section">';
+	let html = generate_subscribe_section();
+
+	html += '<div class="comments-section">';
 	html += '<h2>Comments</h2>';
 
 	if (comments.length === 0) {
@@ -906,7 +925,7 @@ async function get_comments_for_post(post_slug: string): Promise<string> {
 		</div>
 		<input type="hidden" name="post_slug" value="${post_slug}">
 		<div class="button-tray">
-			<button type="submit" id="comment-submit">Post Comment</button>
+			<button type="submit" class="btn-skew" id="comment-submit">Post Comment</button>
 		</div>
 		<div id="comment-status"></div>
 	</form>`;
@@ -971,6 +990,101 @@ server.json('/api/likes/status', async (req, url, json) => {
 	const count = await get_like_count(post_slug);
 
 	return { liked: !!existing, count };
+});
+// endregion
+
+// region subscriptions
+const SUBSCRIBE_VERIFY_DURATION = 60 * 60 * 1000; // 1 hour
+
+type PendingSubscription = {
+	email: string;
+	token: string;
+	expires_at: number;
+};
+
+const pending_subscriptions: Map<string, PendingSubscription> = new Map();
+
+// submit a subscription request
+server.json('/api/subscribe', async (req, url, json) => {
+	if (!json || typeof json !== 'object')
+		return { status: 400, error: 'Invalid request' };
+
+	const { email } = json as Record<string, unknown>;
+
+	if (typeof email !== 'string' || !email)
+		return { status: 400, error: 'Email is required', field: 'email' };
+
+	if (email.length > 254)
+		return { status: 400, error: 'Email must be less than 254 characters', field: 'email' };
+
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+		return { status: 400, error: 'Please enter a valid email address', field: 'email' };
+
+	// check if already subscribed
+	const [existing] = await db`SELECT email, verified_at FROM post_subscriptions WHERE email = ${email}`;
+	if (existing && existing.verified_at) {
+		return { success: true, already_subscribed: true, message: "You're already subscribed!" };
+	}
+
+	// check if they have a verified comment session with this email
+	const cookie_header = req.headers.get('cookie') ?? '';
+	const session_match = cookie_header.match(/comment_session=([a-f0-9]{64})/);
+	const existing_token = session_match?.[1];
+
+	if (existing_token) {
+		const [session] = await db`SELECT email, verified_at, expires_at FROM comment_sessions WHERE token = ${existing_token}`;
+		if (session && session.verified_at && new Date(session.expires_at) > new Date() && session.email === email) {
+			// user already verified via commenting system, subscribe directly
+			if (existing) {
+				await db`UPDATE post_subscriptions SET verified_at = NOW() WHERE email = ${email}`;
+			} else {
+				await db`INSERT INTO post_subscriptions (email, verified_at) VALUES (${email}, NOW())`;
+			}
+			return { success: true, verified: true, message: "You're now subscribed!" };
+		}
+	}
+
+	// need to verify via email
+	const token = crypto.randomBytes(32).toString('hex');
+	const expires_at = Date.now() + SUBSCRIBE_VERIFY_DURATION;
+
+	pending_subscriptions.set(token, { email, token, expires_at });
+
+	// insert unverified record if not exists
+	if (!existing) {
+		await db`INSERT INTO post_subscriptions (email) VALUES (${email})`;
+	}
+
+	await send_templated_email('subscribe_verify', email, { token });
+
+	return { success: true, verified: false, message: 'Please check your email to confirm your subscription.' };
+});
+
+// verify subscription
+server.route('/api/subscribe/verify', async (req, url) => {
+	const token = url.searchParams.get('token');
+	if (!token || !/^[a-f0-9]{64}$/.test(token))
+		return new Response('Invalid token', { status: 400 });
+
+	const pending = pending_subscriptions.get(token);
+	if (!pending)
+		return new Response('Subscription request not found or expired. Please try again.', { status: 404 });
+
+	if (Date.now() > pending.expires_at) {
+		pending_subscriptions.delete(token);
+		return new Response('Verification link has expired. Please try again.', { status: 410 });
+	}
+
+	// mark as verified
+	await db`UPDATE post_subscriptions SET verified_at = NOW() WHERE email = ${pending.email}`;
+	pending_subscriptions.delete(token);
+
+	return new Response(null, {
+		status: 302,
+		headers: {
+			'Location': '/devlog?subscribed=1'
+		}
+	});
 });
 // endregion
 

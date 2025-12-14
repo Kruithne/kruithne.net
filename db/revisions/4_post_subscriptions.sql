@@ -1,0 +1,5 @@
+CREATE TABLE post_subscriptions (
+	email VARCHAR(254) PRIMARY KEY,
+	verified_at TIMESTAMP NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

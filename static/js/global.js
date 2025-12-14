@@ -396,6 +396,97 @@ document.addEventListener('keydown', function(e) {
 	});
 })();
 
+// Subscribe form handling
+(function() {
+	const form = document.getElementById('subscribe-form');
+	if (!form)
+		return;
+
+	const email_input = document.getElementById('subscribe-email');
+	const submit_btn = document.getElementById('subscribe-submit');
+	const status_el = document.getElementById('subscribe-status');
+	const error_el = document.getElementById('subscribe-email-error');
+
+	function show_error(message) {
+		email_input.classList.add('error');
+		error_el.textContent = message;
+	}
+
+	function clear_error() {
+		email_input.classList.remove('error');
+		error_el.textContent = '';
+	}
+
+	function validate_email(v) {
+		if (!v)
+			return 'Email is required';
+
+		if (v.length > 254)
+			return 'Email must be less than 254 characters';
+
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+			return 'Please enter a valid email address';
+
+		return null;
+	}
+
+	email_input.addEventListener('input', clear_error);
+
+	form.addEventListener('submit', async function(e) {
+		e.preventDefault();
+
+		status_el.textContent = '';
+		status_el.className = '';
+		clear_error();
+
+		const email = email_input.value.trim();
+		const error = validate_email(email);
+		if (error) {
+			show_error(error);
+			return;
+		}
+
+		submit_btn.disabled = true;
+		submit_btn.textContent = 'Subscribing...';
+
+		try {
+			const res = await fetch('/api/subscribe', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email })
+			});
+
+			const data = await res.json();
+
+			if (res.ok) {
+				status_el.textContent = data.message;
+				status_el.className = 'success';
+				if (data.verified || data.already_subscribed)
+					form.reset();
+			} else {
+				status_el.textContent = data.error || 'Something went wrong. Please try again.';
+				status_el.className = 'error';
+				if (data.field === 'email')
+					show_error(data.error);
+			}
+		} catch (err) {
+			status_el.textContent = 'Failed to subscribe. Please try again.';
+			status_el.className = 'error';
+		} finally {
+			submit_btn.disabled = false;
+			submit_btn.textContent = 'Subscribe';
+		}
+	});
+
+	// Check for success message from redirect
+	const params = new URLSearchParams(window.location.search);
+	if (params.get('subscribed') === '1') {
+		status_el.textContent = "You're now subscribed!";
+		status_el.className = 'success';
+		history.replaceState(null, '', window.location.pathname);
+	}
+})();
+
 // Like button handling
 (function() {
 	const like_buttons = document.querySelectorAll('.like-button');
