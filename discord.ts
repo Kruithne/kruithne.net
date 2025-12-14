@@ -1,4 +1,4 @@
-import { log_create_logger } from 'spooder';
+import { log_create_logger, caution } from 'spooder';
 
 const log = log_create_logger('discord', '#5865F2ff');
 
@@ -81,8 +81,7 @@ export async function discord_post(config: DiscordPostConfig): Promise<string[] 
 			log`{posted successfully to ${channel_id}} {message: ${message_id}}`;
 			message_ids.push(message_id);
 		} catch (err) {
-			log`{failed to post to ${channel_id}} {${err instanceof Error ? err.message : String(err)}}`;
-			throw err;
+			caution(`failed to post to discord channel ${channel_id}`, { err });
 		}
 	}
 
