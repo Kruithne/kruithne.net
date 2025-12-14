@@ -10,6 +10,9 @@ import { db } from './db';
 
 const execAsync = promisify(exec);
 
+// mailing list configuration (used in trigger and queue)
+const MAILING_LIST_SMTP_URI = process.env.MAILING_LIST_SMTP_URI;
+
 // region constants
 const PAGE_DIR = './html/pages';
 const PAGE_DEFAULT_TITLE = 'kruithne.net';
@@ -302,8 +305,32 @@ async function trigger_twitter(post: PostMeta): Promise<void> {
 }
 
 async function trigger_mail_subscribers(post: PostMeta): Promise<void> {
-	// placeholder for mail subscriber notifications
-	spooder.log(`[mail] would notify subscribers: ${post.title}`);
+	if (!MAILING_LIST_SMTP_URI) {
+		spooder.log(`[mail] MAILING_LIST_SMTP_URI not configured, skipping notifications`);
+		return;
+	}
+
+	// get all verified subscribers
+	const subscribers = await db`SELECT email, token FROM post_subscriptions WHERE verified_at IS NOT NULL`;
+
+	if (subscribers.length === 0) {
+		spooder.log(`[mail] no subscribers to notify for ${post.title}`);
+		return;
+	}
+
+	spooder.log(`[mail] queueing ${subscribers.length} notifications for ${post.title}`);
+
+	// add all subscribers to the queue
+	for (const sub of subscribers) {
+		mailing_list_queue.push({
+			to: sub.email,
+			token: sub.token,
+			post
+		});
+	}
+
+	// start processing the queue
+	process_mailing_list_queue();
 }
 
 function trigger_new_post(post: PostMeta): void {
@@ -758,6 +785,116 @@ async function send_templated_email(template_id: string, to: string, replacement
 		html
 	}).catch(err => spooder.caution('failed to send templated email', { err, template_id, to }));
 }
+
+// region mailing list
+const MAILING_LIST_FROM = 'kruithne.net <mailinglist@kruithne.net>';
+const MAILING_LIST_INTERVAL = 60 * 1000; // 1 minute between emails
+
+type MailingListQueueItem = {
+	to: string;
+	token: string;
+	post: PostMeta;
+};
+
+const mailing_list_queue: MailingListQueueItem[] = [];
+let mailing_list_processing = false;
+
+function generate_subscription_token(): string {
+	return crypto.randomBytes(4).toString('hex'); // 8 hex chars
+}
+
+async function process_mailing_list_queue(): Promise<void> {
+	if (mailing_list_processing || mailing_list_queue.length === 0)
+		return;
+
+	mailing_list_processing = true;
+
+	const item = mailing_list_queue.shift();
+	if (!item) {
+		mailing_list_processing = false;
+		return;
+	}
+
+	try {
+		await send_mailing_list_email(item.to, item.token, item.post);
+		spooder.log(`[mail] sent notification to ${item.to} for ${item.post.title}`);
+	} catch (err) {
+		spooder.caution(`[mail] failed to send to ${item.to}`, { err });
+	}
+
+	// schedule next email after interval
+	if (mailing_list_queue.length > 0) {
+		setTimeout(() => {
+			mailing_list_processing = false;
+			process_mailing_list_queue();
+		}, MAILING_LIST_INTERVAL);
+	} else {
+		mailing_list_processing = false;
+	}
+}
+
+async function send_mailing_list_email(to: string, token: string, post: PostMeta): Promise<void> {
+	if (!MAILING_LIST_SMTP_URI) {
+		spooder.caution('[mail] MAILING_LIST_SMTP_URI not configured');
+		return;
+	}
+
+	const template = await load_mail_template('new_post');
+	const post_url = `https://kruithne.net${post.slug}`;
+	const unsubscribe_url = `https://kruithne.net/api/unsubscribe?token=${token}`;
+	const image_url = post.image ? `https://kruithne.net/${post.image}` : '';
+
+	// VERP return path for bounce handling
+	const return_path = `mailinglist+${token}@kruithne.net`;
+
+	const replacements: Record<string, string> = {
+		title: escape_html(post.title),
+		description: post.description ? escape_html(post.description) : '',
+		post_url,
+		unsubscribe_url,
+		image: image_url
+	};
+
+	// apply replacements to content
+	for (let i = 0; i < template.content.length; i++) {
+		for (const key in replacements)
+			template.content[i] = template.content[i].replace(`%${key}%`, replacements[key]);
+	}
+
+	// remove image line if no image
+	if (!post.image) {
+		template.content = template.content.filter(line => !line.includes('<img src=""'));
+	}
+
+	// apply replacement to subject
+	template.subject = template.subject.replace('%title%', post.title);
+
+	// render HTML
+	const base_html = await load_mail_base_template();
+	const lines = base_html.split(/\r?\n/);
+	const template_index = lines.findIndex(line => line.includes('<!-- TEMPLATE CONTENT -->'));
+
+	const template_content = template.content.flatMap(content =>
+		lines[template_index].replace('<!-- TEMPLATE CONTENT -->', content)
+	);
+
+	lines.splice(template_index, 1, ...template_content);
+	const html = lines.join('\n');
+
+	// plain text version
+	const text = template.content.join('\n\n').replace(/<[^>]+>/g, '');
+
+	await smtp_send({
+		uri: MAILING_LIST_SMTP_URI,
+		from: MAILING_LIST_FROM,
+		to,
+		subject: template.subject,
+		text,
+		html,
+		return_path
+	});
+}
+// endregion
 // endregion
 
 // region comments
@@ -1129,10 +1266,11 @@ server.json('/api/subscribe', async (req, url, json) => {
 		const [session] = await db`SELECT email, verified_at, expires_at FROM comment_sessions WHERE token = ${existing_token}`;
 		if (session && session.verified_at && new Date(session.expires_at) > new Date() && session.email === email) {
 			// user already verified via commenting system, subscribe directly
+			const sub_token = generate_subscription_token();
 			if (existing) {
-				await db`UPDATE post_subscriptions SET verified_at = NOW() WHERE email = ${email}`;
+				await db`UPDATE post_subscriptions SET verified_at = NOW(), token = ${sub_token} WHERE email = ${email}`;
 			} else {
-				await db`INSERT INTO post_subscriptions (email, verified_at) VALUES (${email}, NOW())`;
+				await db`INSERT INTO post_subscriptions (email, verified_at, token) VALUES (${email}, NOW(), ${sub_token})`;
 			}
 			return { success: true, verified: true, message: "You're now subscribed!" };
 		}
@@ -1144,9 +1282,9 @@ server.json('/api/subscribe', async (req, url, json) => {
 
 	pending_subscriptions.set(token, { email, token, expires_at });
 
-	// insert unverified record if not exists
+	// insert unverified record if not exists (token will be set on verification)
 	if (!existing) {
-		await db`INSERT INTO post_subscriptions (email) VALUES (${email})`;
+		await db`INSERT INTO post_subscriptions (email, token) VALUES (${email}, ${generate_subscription_token()})`;
 	}
 
 	await send_templated_email('subscribe_verify', email, { token });
@@ -1169,8 +1307,9 @@ server.route('/api/subscribe/verify', async (req, url) => {
 		return new Response('Verification link has expired. Please try again.', { status: 410 });
 	}
 
-	// mark as verified
-	await db`UPDATE post_subscriptions SET verified_at = NOW() WHERE email = ${pending.email}`;
+	// mark as verified and generate a permanent token for VERP/unsubscribe
+	const sub_token = generate_subscription_token();
+	await db`UPDATE post_subscriptions SET verified_at = NOW(), token = ${sub_token} WHERE email = ${pending.email}`;
 	pending_subscriptions.delete(token);
 
 	return new Response(null, {
@@ -1178,6 +1317,50 @@ server.route('/api/subscribe/verify', async (req, url) => {
 		headers: {
 			'Location': '/devlog?subscribed=1'
 		}
+	});
+});
+
+// unsubscribe from mailing list (one-click via token)
+server.route('/api/unsubscribe', async (req, url) => {
+	const token = url.searchParams.get('token');
+	if (!token || !/^[a-f0-9]{8}$/.test(token))
+		return new Response('Invalid unsubscribe link', { status: 400 });
+
+	// find subscription by token
+	const [subscription] = await db`SELECT email FROM post_subscriptions WHERE token = ${token}`;
+	if (!subscription)
+		return new Response('Subscription not found. You may have already unsubscribed.', { status: 404 });
+
+	// delete the subscription
+	await db`DELETE FROM post_subscriptions WHERE token = ${token}`;
+	spooder.log(`[mail] unsubscribed: ${subscription.email}`);
+
+	// return a simple confirmation page
+	const html = `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Unsubscribed - kruithne.net</title>
+	<style>
+		body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a1a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+		.box { background: #2a2a2a; padding: 40px; border-radius: 12px; text-align: center; max-width: 400px; }
+		h1 { margin: 0 0 16px 0; }
+		p { color: #888; margin: 0 0 24px 0; }
+		a { color: #f0c040; }
+	</style>
+</head>
+<body>
+	<div class="box">
+		<h1>Unsubscribed</h1>
+		<p>You've been unsubscribed from new post notifications.</p>
+		<a href="/devlog">Return to the devlog</a>
+	</div>
+</body>
+</html>`;
+
+	return new Response(html, {
+		headers: { 'Content-Type': 'text/html; charset=utf-8' }
 	});
 });
 // endregion

@@ -1,0 +1,12 @@
+{
+	"subject": "New Post: %title%",
+	"content": [
+		"Hi there,",
+		"I've just published a new post on my devlog:",
+		"<strong style=\"font-size: 18px;\">%title%</strong>",
+		"%description%",
+		"<img src=\"%image%\" alt=\"%title%\" style=\"max-width: 100%; border-radius: 8px; margin: 16px 0;\">",
+		"<a href=\"%post_url%\" style=\"color: #f0c040;\">Read the full post</a>",
+		"<span style=\"font-size: 12px; opacity: 0.7;\"><a href=\"%unsubscribe_url%\" style=\"color: #888888;\">Unsubscribe from these emails</a></span>"
+	]
+}

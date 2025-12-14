@@ -19,6 +19,7 @@ type SMTPMessage = {
 	subject: string;
 	text?: string;
 	html?: string;
+	return_path?: string; // VERP: envelope sender for bounce handling (defaults to from)
 };
 
 type SMTPSendConfig = {
@@ -300,8 +301,11 @@ export function smtp_create_mailer(uri: string) {
 				throw new Error('connection failed');
 
 			try {
-				const from_addr = extract_email_address(message.from);
-				const mail_response = await smtp_send_command(socket, `MAIL FROM:<${from_addr}>`);
+				// VERP: use return_path for envelope sender (bounces), fall back to from address
+				const envelope_sender = message.return_path
+					? extract_email_address(message.return_path)
+					: extract_email_address(message.from);
+				const mail_response = await smtp_send_command(socket, `MAIL FROM:<${envelope_sender}>`);
 				if (!mail_response.startsWith('250'))
 					throw new Error(`mail from failed: ${mail_response}`);
 
@@ -381,7 +385,8 @@ export async function smtp_send(config: SMTPSendConfig): Promise<SMTPResponse> {
 			bcc: config.bcc,
 			subject: config.subject,
 			text: config.text,
-			html: config.html
+			html: config.html,
+			return_path: config.return_path
 		});
 	} finally {
 		await mailer.close();
