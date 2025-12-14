@@ -20,7 +20,7 @@ const PAGE_DIR = './html/pages';
 const PAGE_DEFAULT_TITLE = 'kruithne.net';
 const PAGE_INDEX = '/index';
 
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 5 hours
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 // endregion
 
