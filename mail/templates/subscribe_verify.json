@@ -2,7 +2,7 @@
 	"subject": "Confirm your subscription to kruithne.net",
 	"content": [
 		"Hi there,",
-		"You've requested to subscribe to email notifications for new posts on kruithne.net.",
+		"You've requested to subscribe to email notifications for new posts on my devlog.",
 		"<a href=\"https://kruithne.net/api/subscribe/verify?token=%token%\" style=\"color: #f0c040;\">Click here to confirm your subscription</a>",
 		"This link will expire in 1 hour.",
 		"If you didn't request this, you can safely ignore this email."
