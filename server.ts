@@ -202,6 +202,8 @@ type PostMeta = {
 	title: string;
 	date: string;
 	date_sort: number;
+	description: string | null;
+	image: string | null;
 };
 
 const devlog_posts: PostMeta[] = [];
@@ -216,10 +218,10 @@ async function load_devlog_posts() {
 
 		const file_path = path.join(posts_dir, file);
 
-		// read first 500 bytes, should be enough to get title and date
+		// read first 2000 bytes to capture title, date, and post-meta template
 		const handle = await fs.open(file_path, 'r');
-		const buffer = Buffer.alloc(500);
-		await handle.read(buffer, 0, 500, 0);
+		const buffer = Buffer.alloc(2000);
+		await handle.read(buffer, 0, 2000, 0);
 		await handle.close();
 
 		const content = buffer.toString('utf-8');
@@ -229,11 +231,29 @@ async function load_devlog_posts() {
 		if (!title_match || !date_match)
 			continue;
 
+		// extract post-meta template block
+		let description: string | null = null;
+		let image: string | null = null;
+
+		const template_match = content.match(/<template id="post-meta">([\s\S]*?)<\/template>/i);
+		if (template_match) {
+			const template_content = template_match[1];
+			const desc_match = template_content.match(/<meta name="description" content="([^"]*)">/i);
+			const img_match = template_content.match(/<meta name="image" content="([^"]*)">/i);
+
+			if (desc_match)
+				description = desc_match[1];
+			if (img_match)
+				image = img_match[1];
+		}
+
 		devlog_posts.push({
 			slug: '/posts/' + path.basename(file, '.html'),
 			title: title_match[1],
 			date: date_match[2],
-			date_sort: new Date(date_match[1]).getTime()
+			date_sort: new Date(date_match[1]).getTime(),
+			description,
+			image
 		});
 	}
 
@@ -346,10 +366,21 @@ await (async () => {
 			// comments only on post pages, not on front page
 			const is_post_page = slug.startsWith('/posts/');
 
+			// get post metadata for social embeds
+			const post_meta = is_post_page ? devlog_posts.find(p => p.slug === slug) : null;
+			const page_url = slug === '/' ? '' : slug;
+			const page_description = post_meta?.description ?? '';
+			const page_image = post_meta?.image
+				? `https://kruithne.net/${post_meta.image}`
+				: 'https://kruithne.net/static/social_embed_card.webp';
+
 			const rendered = await spooder.parse_template(
 				await template_page(content),
 				{
 					page_title,
+					page_url,
+					page_description,
+					page_image,
 					post_list: generate_post_list,
 					post_nav: () => generate_post_nav(slug),
 					latest_post: generate_latest_post,
