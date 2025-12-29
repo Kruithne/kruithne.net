@@ -669,6 +669,14 @@ textarea {
 	cursor: not-allowed;
 }
 
+.btn-skew.btn-secondary::before {
+	border-style: dashed;
+}
+
+a.btn-skew {
+	text-decoration: none;
+}
+
 #contact-submit {
 	align-self: flex-start;
 }
@@ -995,8 +1003,19 @@ a.view-post-link:hover {
 	margin-bottom: 15px;
 }
 
+.subscribe-buttons {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 15px;
+}
+
 .subscribe-form {
+	display: none;
 	max-width: 400px;
+}
+
+.subscribe-form.open {
+	display: block;
 }
 
 .form-group-inline {

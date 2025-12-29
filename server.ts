@@ -208,6 +208,7 @@ type PostMeta = {
 	title: string;
 	date: string;
 	date_sort: number;
+	rss_date: string;
 	description: string | null;
 	image: string | null;
 };
@@ -253,11 +254,13 @@ async function load_devlog_posts() {
 				image = img_match[1];
 		}
 
+		const post_date = new Date(date_match[1]);
 		devlog_posts.push({
 			slug: '/posts/' + path.basename(file, '.html'),
 			title: title_match[1],
 			date: date_match[2],
-			date_sort: new Date(date_match[1]).getTime(),
+			date_sort: post_date.getTime(),
+			rss_date: post_date.toUTCString(),
 			description,
 			image
 		});
@@ -397,6 +400,7 @@ function generate_post_list(): string {
 	if (current_year !== '')
 		html += '</ul>';
 
+	html += generate_subscribe_section();
 	return html;
 }
 
@@ -554,6 +558,16 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 	}
 	
 	return spooder.http_apply_range(file, request);
+});
+// endregion
+
+// region rss
+server.route('/rss', async () => {
+	const template = await Bun.file('./rss.xml').text();
+	const content = await spooder.parse_template(template, { posts: devlog_posts }, true);
+	return new Response(content, {
+		headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' }
+	});
 });
 // endregion
 
@@ -1115,7 +1129,11 @@ server.route('/api/comments/verify', async (req, url) => {
 function generate_subscribe_section(): string {
 	let html = '<div class="subscribe-section">';
 	html += '<h2>Stay In The Loop</h2>';
-	html += '<p>Subscribe to receive email notifications when new posts are published.</p>';
+	html += '<p>Get notified when new posts are published.</p>';
+	html += '<div class="subscribe-buttons">';
+	html += '<button type="button" class="btn-skew" id="subscribe-email-btn">Subscribe</button>';
+	html += '<a href="/rss" class="btn-skew btn-secondary">RSS Feed</a>';
+	html += '</div>';
 	html += '<form class="subscribe-form" id="subscribe-form">';
 	html += '<div class="form-group form-group-inline">';
 	html += '<input type="email" id="subscribe-email" name="email" placeholder="your@email.com" required maxlength="254">';

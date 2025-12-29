@@ -402,10 +402,20 @@ document.addEventListener('keydown', function(e) {
 	if (!form)
 		return;
 
+	const email_btn = document.getElementById('subscribe-email-btn');
 	const email_input = document.getElementById('subscribe-email');
 	const submit_btn = document.getElementById('subscribe-submit');
 	const status_el = document.getElementById('subscribe-status');
 	const error_el = document.getElementById('subscribe-email-error');
+
+	// Toggle email form visibility
+	if (email_btn) {
+		email_btn.addEventListener('click', function() {
+			form.classList.toggle('open');
+			if (form.classList.contains('open'))
+				email_input.focus();
+		});
+	}
 
 	function show_error(message) {
 		email_input.classList.add('error');
@@ -481,6 +491,7 @@ document.addEventListener('keydown', function(e) {
 	// Check for success message from redirect
 	const params = new URLSearchParams(window.location.search);
 	if (params.get('subscribed') === '1') {
+		form.classList.add('open');
 		status_el.textContent = "You're now subscribed!";
 		status_el.className = 'success';
 		history.replaceState(null, '', window.location.pathname);

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>kruithne.net DevLog</title>
+		<link>https://kruithne.net/devlog</link>
+		<description>Development updates and articles from kruithne</description>
+		<language>en-us</language>
+		<atom:link href="https://kruithne.net/rss" rel="self" type="application/rss+xml"/>
+		<t-for items="posts" as="post">
+		<item>
+			<title>{{ post.title }}</title>
+			<link>https://kruithne.net{{ post.slug }}</link>
+			<guid isPermaLink="true">https://kruithne.net{{ post.slug }}</guid>
+			<pubDate>{{ post.rss_date }}</pubDate>
+			<t-if test="post.description">
+			<description>{{ post.description }}</description>
+			</t-if>
+		</item>
+		</t-for>
+	</channel>
+</rss>
