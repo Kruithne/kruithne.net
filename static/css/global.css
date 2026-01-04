@@ -1094,6 +1094,9 @@ a.view-post-link:hover {
 
 /* Corner Doodles */
 .doodle {
+	--doodle-edge-offset: 60px;
+	--doodle-center-offset: 840px;
+
 	position: fixed;
 	width: 150px;
 	height: auto;
@@ -1102,23 +1105,23 @@ a.view-post-link:hover {
 }
 
 .doodle-top-left {
-	top: 40px;
-	left: calc(50% - 920px);
+	top: var(--doodle-edge-offset);
+	left: calc(50% - var(--doodle-center-offset));
 }
 
 .doodle-top-right {
-	top: 40px;
-	right: calc(50% - 920px);
+	top: var(--doodle-edge-offset);
+	right: calc(50% - var(--doodle-center-offset));
 }
 
 .doodle-bottom-left {
-	bottom: 40px;
-	left: calc(50% - 920px);
+	bottom: var(--doodle-edge-offset);
+	left: calc(50% - var(--doodle-center-offset));
 }
 
 .doodle-bottom-right {
-	bottom: 40px;
-	right: calc(50% - 920px);
+	bottom: var(--doodle-edge-offset);
+	right: calc(50% - var(--doodle-center-offset));
 }
 
 @keyframes doodle-jitter {
