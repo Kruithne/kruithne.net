@@ -1125,6 +1125,11 @@ a.view-post-link:hover {
 	right: calc(50% - var(--doodle-center-offset));
 }
 
+.doodle-pooker {
+	bottom: 0;
+	right: 36px;
+}
+
 @keyframes doodle-jitter {
 	0% { transform: translate(0, 0) rotate(0deg); }
 	25% { transform: translate(-0.5px, 0.5px) rotate(-0.2deg); }
