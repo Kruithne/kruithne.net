@@ -253,6 +253,7 @@ footer {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	overflow: visible;
 }
 
 footer::before {
@@ -1097,7 +1098,7 @@ a.view-post-link:hover {
 	--doodle-edge-offset: 60px;
 	--doodle-center-offset: 840px;
 
-	position: fixed;
+	position: absolute;
 	width: 150px;
 	height: auto;
 	pointer-events: none;
@@ -1115,12 +1116,12 @@ a.view-post-link:hover {
 }
 
 .doodle-bottom-left {
-	bottom: var(--doodle-edge-offset);
+	top: var(--doodle-edge-offset);
 	left: calc(50% - var(--doodle-center-offset));
 }
 
 .doodle-bottom-right {
-	bottom: var(--doodle-edge-offset);
+	top: var(--doodle-edge-offset);
 	right: calc(50% - var(--doodle-center-offset));
 }
 
