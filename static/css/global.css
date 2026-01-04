@@ -1094,7 +1094,6 @@ a.view-post-link:hover {
 
 /* Corner Doodles */
 .doodle {
-	display: none;
 	position: fixed;
 	width: 150px;
 	height: auto;
@@ -1103,23 +1102,23 @@ a.view-post-link:hover {
 }
 
 .doodle-top-left {
-	top: 20px;
-	left: 20px;
+	top: 40px;
+	left: calc(50% - 920px);
 }
 
 .doodle-top-right {
-	top: 20px;
-	right: 20px;
+	top: 40px;
+	right: calc(50% - 920px);
 }
 
 .doodle-bottom-left {
-	bottom: 20px;
-	left: 20px;
+	bottom: 40px;
+	left: calc(50% - 920px);
 }
 
 .doodle-bottom-right {
-	bottom: 20px;
-	right: 20px;
+	bottom: 40px;
+	right: calc(50% - 920px);
 }
 
 @keyframes doodle-jitter {
@@ -1128,10 +1127,4 @@ a.view-post-link:hover {
 	50% { transform: translate(0.5px, -0.5px) rotate(0.2deg); }
 	75% { transform: translate(-0.3px, -0.3px) rotate(-0.1deg); }
 	100% { transform: translate(0.3px, 0.2px) rotate(0.1deg); }
-}
-
-@media (min-width: 1261px) {
-	.doodle {
-		display: block;
-	}
 }
