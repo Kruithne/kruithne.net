@@ -1116,12 +1116,12 @@ a.view-post-link:hover {
 }
 
 .doodle-bottom-left {
-	top: var(--doodle-edge-offset);
+	bottom: calc(100% + var(--doodle-edge-offset));
 	left: calc(50% - var(--doodle-center-offset));
 }
 
 .doodle-bottom-right {
-	top: var(--doodle-edge-offset);
+	bottom: calc(100% + var(--doodle-edge-offset));
 	right: calc(50% - var(--doodle-center-offset));
 }
 
