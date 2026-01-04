@@ -1091,3 +1091,47 @@ a.view-post-link:hover {
 		align-self: flex-start;
 	}
 }
+
+/* Corner Doodles */
+.doodle {
+	display: none;
+	position: fixed;
+	width: 150px;
+	height: auto;
+	pointer-events: none;
+	animation: doodle-jitter 0.6s infinite steps(1);
+}
+
+.doodle-top-left {
+	top: 20px;
+	left: 20px;
+}
+
+.doodle-top-right {
+	top: 20px;
+	right: 20px;
+}
+
+.doodle-bottom-left {
+	bottom: 20px;
+	left: 20px;
+}
+
+.doodle-bottom-right {
+	bottom: 20px;
+	right: 20px;
+}
+
+@keyframes doodle-jitter {
+	0% { transform: translate(0, 0) rotate(0deg); }
+	25% { transform: translate(-0.5px, 0.5px) rotate(-0.2deg); }
+	50% { transform: translate(0.5px, -0.5px) rotate(0.2deg); }
+	75% { transform: translate(-0.3px, -0.3px) rotate(-0.1deg); }
+	100% { transform: translate(0.3px, 0.2px) rotate(0.1deg); }
+}
+
+@media (min-width: 1261px) {
+	.doodle {
+		display: block;
+	}
+}
