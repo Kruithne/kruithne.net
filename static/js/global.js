@@ -618,3 +618,10 @@ document.addEventListener('keydown', function(e) {
 		});
 	});
 })();
+
+// Randomize doodle jitter animation phase
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelectorAll('.doodle').forEach(el => {
+		el.style.animationDelay = `-${Math.random() * 0.6}s`;
+	});
+});
