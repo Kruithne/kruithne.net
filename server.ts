@@ -1407,6 +1407,11 @@ server.route('/api/unsubscribe', async (req, url) => {
 });
 // endregion
 
+// region klargon
+server.route('/klargon', () => Bun.file('./klargon/index.html'));
+server.dir('/klargon/static', './klargon/static');
+// endregion
+
 // region webhooks
 if (typeof process.env.GH_WEBHOOK_SECRET === 'string') {
 	server.webhook(process.env.GH_WEBHOOK_SECRET, '/internal/hook_source_change', () => {
