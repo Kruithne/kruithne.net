@@ -63,7 +63,7 @@ function load_assets() {
 				if (loaded === total)
 					resolve();
 			};
-			img.src = 'static/' + asset;
+			img.src = 'klargon/static/' + asset;
 			images[asset.replace('.png', '')] = img;
 		});
 	});
