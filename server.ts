@@ -270,12 +270,14 @@ async function load_devlog_posts() {
 	devlog_posts.sort((a, b) => b.date_sort - a.date_sort);
 
 	// check for new posts
-	for (const post of devlog_posts) {
-		const [existing] = await db`SELECT post_slug FROM published_posts WHERE post_slug = ${post.slug}`;
-		if (!existing) {
-			// new post detected, mark as published and trigger notifications
-			await db`INSERT INTO published_posts (post_slug) VALUES (${post.slug})`;
-			trigger_new_post(post);
+	if (process.env.SPOODER_ENV !== 'dev') {
+		for (const post of devlog_posts) {
+			const [existing] = await db`SELECT post_slug FROM published_posts WHERE post_slug = ${post.slug}`;
+			if (!existing) {
+				// new post detected, mark as published and trigger notifications
+				await db`INSERT INTO published_posts (post_slug) VALUES (${post.slug})`;
+				trigger_new_post(post);
+			}
 		}
 	}
 }
