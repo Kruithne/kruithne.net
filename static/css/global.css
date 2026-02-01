@@ -346,6 +346,14 @@ p {
 	border-radius: var(--content-border-radius);
 }
 
+.embed-gif {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto;
+	border-radius: var(--content-border-radius);
+}
+
 .image::before {
 	content: '';
 	position: absolute;
