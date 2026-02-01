@@ -1130,7 +1130,6 @@ server.route('/api/comments/verify', async (req, url) => {
 // subscribe section HTML (reused on front page and post pages)
 function generate_subscribe_section(): string {
 	let html = '<div class="subscribe-section">';
-	html += `<img src="/${spooder.cache_bust('static/images/doodles/doodle_pooker.webp')}" alt="" class="doodle doodle-pooker">`;
 	html += '<h2>Stay In The Loop</h2>';
 	html += '<p>Get notified when new posts are published.</p>';
 	html += '<div class="subscribe-buttons">';
