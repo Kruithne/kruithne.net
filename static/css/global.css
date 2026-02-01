@@ -330,6 +330,10 @@ p {
 	margin: 10px 0;
 }
 
+.image-grid > .image {
+	width: auto;
+}
+
 .image {
 	position: relative;
 	display: inline-block;
@@ -366,7 +370,6 @@ p {
 		grid-template-columns: 1fr;
 		justify-items: center;
 	}
-
 
 	#page-container {
 		padding: 20px;
