@@ -333,6 +333,7 @@ p {
 .image {
 	position: relative;
 	display: inline-block;
+	width: fit-content;
 }
 
 .image > img {
@@ -366,9 +367,6 @@ p {
 		justify-items: center;
 	}
 
-	.image {
-		width: fit-content;
-	}
 
 	#page-container {
 		padding: 20px;
