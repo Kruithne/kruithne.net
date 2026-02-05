@@ -5,8 +5,8 @@ import crypto from 'node:crypto';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { smtp_send } from './smtp';
-// import { bluesky_post } from './bluesky';
-// import { twitter_post } from './twitter';
+import { bluesky_post } from './bluesky';
+import { twitter_post } from './twitter';
 import { discord_post } from './discord';
 import { db } from './db';
 
