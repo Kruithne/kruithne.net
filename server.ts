@@ -5,8 +5,8 @@ import crypto from 'node:crypto';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { smtp_send } from './smtp';
-import { bluesky_post } from './bluesky';
-import { twitter_post } from './twitter';
+// import { bluesky_post } from './bluesky';
+// import { twitter_post } from './twitter';
 import { discord_post } from './discord';
 import { db } from './db';
 
@@ -361,13 +361,13 @@ function trigger_new_post(post: PostMeta): void {
 	spooder.log(`new post detected: ${post.title} (${post.slug})`);
 
 	// fire all triggers async, don't block startup
-	trigger_bluesky(post).catch(err =>
-		spooder.caution(`bluesky trigger failed for ${post.slug}`, { err })
-	);
+	// trigger_bluesky(post).catch(err =>
+	// 	spooder.caution(`bluesky trigger failed for ${post.slug}`, { err })
+	// );
 
-	trigger_twitter(post).catch(err =>
-		spooder.caution(`twitter trigger failed for ${post.slug}`, { err })
-	);
+	// trigger_twitter(post).catch(err =>
+	// 	spooder.caution(`twitter trigger failed for ${post.slug}`, { err })
+	// );
 
 	trigger_discord(post).catch(err =>
 		spooder.caution(`discord trigger failed for ${post.slug}`, { err })
