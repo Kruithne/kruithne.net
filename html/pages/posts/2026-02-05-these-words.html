@@ -9,6 +9,7 @@
 
 	<p>The first thing I want to implement in the engine is font rendering. It's kind of a big deal, not just for the game itself (user interface, settings, dialog, etc) but also to allow me to debug things - so that's what we're going to start with.</p>
 
+	<hr class="smaller">
 	<h2>Fonts! How Do They Work?</h2>
 
 	<p>If you've never thought about it, here's a quick (and vague) primer on how fonts generally work. The simple way to render a font is to create an atlas, which is a single texture with all of the font glyphs rendered on it.</p>
@@ -40,7 +41,7 @@
 	<img src="https://media1.tenor.com/m/LLi3WEflcXkAAAAC/bigger-boat.gif" class="embed-gif"/>
 
 	<p><b>TL;DR</b>: The bitmap texture atlas approach is great approach for retro games with a 1-bit font approach, even with full localization, but for modern font use, it doesn't scale.</p>
-
+	<hr class="smaller">
 	<h2>Flying With Fonts</h2>
 
 	<p>The most common solution to the aforementioned problems is to do it on the fly. Instead of having all the glyphs rendered out in a texture, you render them when you need them.</p>
@@ -72,35 +73,39 @@
 	{{image=static/images/posts/images/003_wow.png}}
 
 	<p>You can solve this by rendering the font at a bigger size, or even just letting go of the wheel and dynamically rendering at whatever size is requested... but it doesn't feel like a good idea.</p>
-
+	<hr class="smaller">
 	<h2>Go The Distance</h2>
 
 	<p>In 2007, Valve posted a paper for SIGGRAPH titled <a href="https://steamcdn-a.akamaihd.net/apps/valve/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf">Improved Alpha-Tested Magnification for Vector Textures and Special Effects</a>, which details their approach of computing the shape of a vector by using distance fields.</p>
 
 	{{image=static/images/posts/images/003_atmvtse.png}}
+	<cite>Image credit: Valve Corporation</cite>
 
 	<p>Today, this is commonly known as a <a href="https://en.wikipedia.org/wiki/Signed_distance_function">Signed Distance Field</a> (or function). Essentially, you create a texture (let's say 32px in dimension), and at each point (pixel) you encode the distance to the nearest edge of the shape.</p>
 
 	<p>If the point lies within the shape, the distance would be positive, if the point lies outside of the shape, it's negative (hence the "signed" part).</p>
 
 	{{image=static/images/posts/images/003_sdf.png}}
+	<cite>Image credit: Viktor Chlumský</cite>
 
 	<p>Seems great! Why is everyone not using this? Well, some people are! Valve have been using it to render fonts/icons in their games for two decades now, but it's not perfect. Even at 32px, sharp edges don't always look great.</p>
 
 	{{image=static/images/posts/images/003_mono_sdf.png}}
+	<cite>Image credit: Viktor Chlumský</cite>
 
 	<p>Valve's approach in this paper is using a "monochrome" approach; it uses a black and white image, encoding the distance values as the intensity of each pixel. Textures aren't limited to just one channel though, they commonly have three, which gives us two more channels to pack data in.</p>
 
 	<p>This is where Viktor Chlumský's paper <a href="https://github.com/Chlumsky/msdfgen/files/3050967/thesis.pdf">Shape Decomposition for Multi-channel Distance Fields</a> comes in. In Viktor's technique, he utilizes all three colour channels, which produces (almost) perfect shapes, even with sharp edges.</p>
 
 	{{image=static/images/posts/images/003_msdf.png}}
+	<cite>Image credit: Viktor Chlumský</cite>
 
 	<p>Using multi-channel signed distance fields, or MSDF for short, we can take a font we have in a TTF file and compute the fields. Doing this on Google Sans Code, we get a lovely texture like this.</p>
 
 	{{image=static/images/posts/images/003_googlesans.png}}
 
 	<p>For the purposes of testing/demonstration, I'm only using a basic English character set here.</p>
-
+	<hr class="smaller">
 	<h2>Throwing Shade(rs)</h2>
 
 	<p>Now that we've got our lovely psychedelic texture, we need to actually do something with it. So, here's the plan:</p>
@@ -121,7 +126,7 @@
 	<p>Put it together and what have you got? Crisp, real-time font rendering at any scale, from a single static texture.</p>
 
 	{{image=static/images/posts/images/003_sdf_final.gif}}
-
+	<hr class="smaller">
 	<h2>Closing Notes</h2>
 
 	<p>Phew. That's the first step on the massive mountain ahead of us. There are some limitations with MSDF font rendering; for very thin or extremely complex glyphs, it will struggle, but for my game engine, it's a perfect fit, and I don't have to lose any sleep over the "jaggies" anymore.</p>
