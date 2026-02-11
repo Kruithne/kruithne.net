@@ -318,7 +318,8 @@ p {
 	margin: 0 auto;
 }
 
-.image > img {
+.image > img,
+.image > video {
 	display: block;
 	max-width: 100%;
 	height: auto;
