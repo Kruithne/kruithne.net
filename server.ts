@@ -392,7 +392,7 @@ function generate_post_list(): string {
 			if (current_year !== '')
 				html += '</ul>\n<hr>\n';
 
-			html += `<h2>${year}</h2>\n<ul class="post-list">\n`;
+			html += `<h2 class="with-margin">${year}</h2>\n<ul class="post-list">\n`;
 			current_year = year;
 		}
 

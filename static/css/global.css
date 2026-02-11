@@ -15,43 +15,10 @@
 }
 
 @font-face {
-	font-family: 'Atma';
+	font-family: 'PWScratched';
 	font-style: normal;
-	font-weight: 300;
 	font-display: block;
-	src: url('/{{cache_bust=static/fonts/atma-latin-300.woff2}}') format('woff2');
-}
-
-@font-face {
-	font-family: 'Atma';
-	font-style: normal;
-	font-weight: 400;
-	font-display: block;
-	src: url('/{{cache_bust=static/fonts/atma-latin-400.woff2}}') format('woff2');
-}
-
-@font-face {
-	font-family: 'Atma';
-	font-style: normal;
-	font-weight: 500;
-	font-display: block;
-	src: url('/{{cache_bust=static/fonts/atma-latin-500.woff2}}') format('woff2');
-}
-
-@font-face {
-	font-family: 'Atma';
-	font-style: normal;
-	font-weight: 600;
-	font-display: block;
-	src: url('/{{cache_bust=static/fonts/atma-latin-600.woff2}}') format('woff2');
-}
-
-@font-face {
-	font-family: 'Atma';
-	font-style: normal;
-	font-weight: 700;
-	font-display: block;
-	src: url('/{{cache_bust=static/fonts/atma-latin-700.woff2}}') format('woff2');
+	src: url('/{{cache_bust=static/fonts/PWScratchedfont.ttf}}') format('truetype');
 }
 
 :root {
@@ -67,7 +34,7 @@
 	--content-border-radius: 20px;
 	--form-border-radius: 10px;
 	--content-bg-colour: #1a1a1a;
-	--accent-font: "Atma", system-ui;
+	--accent-font: "PWScratched", system-ui;
 	--content-font: "Google Sans Code", monospace;
 	--cursor-pointer: url('/{{cache_bust=static/images/cursor_pointer.webp}}'), pointer;
 }
@@ -290,6 +257,10 @@ hr {
 	overflow: visible;
 }
 
+hr.smaller {
+	margin: 5px 0;
+}
+
 hr::before {
 	content: '';
 	position: absolute;
@@ -297,6 +268,10 @@ hr::before {
 	background: var(--border-colour);
 	filter: url(#wonky);
 	mask-image: repeating-linear-gradient(to right, black 0 8px, transparent 8px 16px);
+}
+
+cite {
+	text-align: center;
 }
 
 .spacer {
@@ -307,14 +282,17 @@ h1 {
 	margin: 0;
 	font-family: var(--accent-font);
 	font-size: 3rem;
+	font-weight: normal;
+	margin-bottom: 10px;
 }
 
 h2 {
 	margin: 0;
 	font-family: var(--accent-font);
+	font-weight: normal;
 }
 
-h1.with-margin {
+.with-margin {
 	margin-bottom: 15px;
 }
 
@@ -365,7 +343,7 @@ p {
 	pointer-events: none;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1120px) {
 	:root {
 		--bg-stripe-width: 50px;
 	}
