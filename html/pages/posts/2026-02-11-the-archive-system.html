@@ -1,0 +1,138 @@
+<template id="post-meta">
+	<meta name="description" content="Storing data in my hand-made game engine">
+	<meta name="image" content="static/images/posts/embeds/004_data_archives.webp">
+</template>
+<h1>The Archive System</h1>
+<time datetime="2026-02-11">11th February 2026</time>
+<section>
+	<p>For a game to work, it needs data. This data takes the form of textures, shaders, geometry, audio and countless other things; so it's quite important. In this post, I'm going to go over the data systems I built for the game engine.</p>
+
+	<img src="https://media1.tenor.com/m/2ui3fDk4piYAAAAd/commander-data-sarcasm.gif" class="embed-gif">
+
+	<p>If your immediate thought is "this sounds like it's going to be boring"... honestly you are probably right, but I want this devlog to be a full account of the development process, so missing out a big part of it seems silly. That being said, it won't be long before things get a lot more fun!</p>
+
+	<h2>Feed Me Data</h2>
+
+	<p>On the surface, this seems quite simple. The player installs the game with all the files on their disk, when we need a file we read it from the disk into memory, and then we can do what we need in memory.</p>
+
+	{{video=static/images/posts/images/004_disk.webm}}
+
+	<p>This is easy and it works, but for a game we're going to be dealing with thousands of files. For EACH file we need to make system calls, manage file handles, load the file from disk, allocate memory for it, process the data, and then free the data from memory.</p>
+
+	<p>This is "probably fine" for a gaming PC with a modern SSD, but that's just a lazy excuse. Factor in disk locality, fragmentation etc. We can do better, we can go faster.</p>
+
+	<img src="https://media1.tenor.com/m/bFiimpRs_5gAAAAC/test.gif" class="embed-gif">
+
+	<p>The first step is not new, it's something games have been doing in the dark ages before even I was born, which is archives. We take all files, shove them into one or multiple big files, and access the data that way.</p>
+
+	{{video=static/images/posts/images/004_archive.webm}}
+
+	<p>For this engine, I've settled on archives of 256MB max. The build system packs files into the archives until one is full, then the next, and so on.</p>
+
+	<p>Instead of managing lots of handles to lots of files, we manage a handful, and then read from specific parts of the file. To do this efficiently, we need to know where inside the archives to find our files, so for this purpose we build an index.</p>
+
+	<p>The index is essentially a phone book (for the youth, there used to be a book with everyone's name and telephone number in it, and if you wanted to call someone you had to find them in the book - yes, seriously). It stores an archive number, a byte offset within the archive, and the size of the file.</p>
+
+	{{video=static/images/posts/images/004_index.webm}}
+
+	<p>Some of you eagle-eyed readers may have noticed a problem with the index. It tells us where to find a file, and it tells us how big the file is, but it doesn't tell us <b>who</b> or <i>what</i> the file is? Glad you asked!</p>
+
+	<h2>Got Your Number</h2>
+
+	<p>In a lot of game engines or software in general, the most obvious way to read a file is by using the file path. That's why operating systems have them, because they're essentially doing the same thing we're doing with our archives, but on a much larger scale. The file path is just a logical organisational layer for humans.</p>
+
+	{{image=static/images/posts/images/004_read_file.png}}
+
+	<p>For our archive system, this means we need to also pack in the file paths into the index, and come up with an efficient way to sort them so we can take a file path and look it up in the index. We could utilize a tree, or maybe hash the file path... hold on, why even bother?</p>
+
+	<p>I've built a system that packs the game data into archives, the code for the game already has to be compiled, and the computer doesn't care either way. Let's just drop the strings, and files will be referenced by ID.</p>
+
+	<img src="https://media1.tenor.com/m/Dw2O3-hDV_IAAAAC/do-you-have-id-who-are-you.gif" class="embed-gif">
+
+	<p>Great! What ID? Do we create the ID by hashing the file path? Assign them incrementally? How do we map the ID to the corresponding entry in the index? Hold on again, why even bother?</p>
+
+	<p>Every file exists in the index, and by the definition of being sequential, they already have an ID - their index in the index. The first file is at index 0, the next 1, 2, 3 and so on. If we use the index instead of assigning another layer, we don't need to do anything!</p>
+
+	<p>If we want to get file ID <code>n</code>, then we simply read 12 bytes from the index at position <code>4 + n</code>. The 4 is to offset from the entry count at the start of the index. From this simple memory read we have the archive, offset and size of our file.</p>
+
+	{{video=static/images/posts/images/004_lookup.webm}}
+
+	<p>No file strings means leaner builds and much faster lookups. You're starting to see one of the most important things to learn as a programmer: do less.</p>
+
+	<h2>Pack It In</h2>
+
+	<p>I've built a small pipeline called <b>hogpack</b> that builds the game. In addition to compiling the source code, it also compiles the data archives, and these two processes go hand-in-hand.</p>
+
+	<p>Remember before when I said that we just get rid of file paths and give everything a magical ID that happens to be it's position in the index? That step is actually done by <b>hogpack</b> itself.</p>
+
+	{{image=static/images/posts/images/004_fileref.png}}
+
+	<p>As shown in the above snippet, in the source code files are actually referenced by string. This is a custom type alias called <code>FileRef</code> which acts as a string in debugging builds, but as a <code>uint</code> in release builds.</p>
+
+	<p>As <b>hogpack</b> compiles the source code, it swaps out those file references for the index position. This allows me as the developer to write file paths normally, but under the hood it's using indexes directly for efficiency.</p>
+
+	<img src="https://media1.tenor.com/m/zs-6k2lFHGsAAAAC/steve-carrell-magic.gif" class="embed-gif">
+
+	<p>So we just collect all the files, shove them into archives, and add them into the index in sequential order, right? Wrong. An important part of a data archive system is that we want stability between builds.</p>
+
+	<p>The index re-ordering in itself is not a super big problem (other than it being chaotic), but it's stability helps us with a more important factor: we want to keep the archive files themself as consistent as possible.</p>
+
+	<p>The reason for this is simple: when distribution platforms like Steam deploy updates, they send as little data as possible by checking small chunks of our data for differences. This works <b>great</b> for our data archives, because these "chunks" can be continous between files... but it falls apart if the order of files within the archives keeps changing.</p>
+
+	{{video=static/images/posts/images/004_chunks.webm}}
+
+	<p>This works great for the release builds, but it's a lot of work to do every time I want to test a build, which is sometimes hundreds of times an hour. So for debugging builds, it bypasses all of this and simply reads the files directly from disk - best of both worlds!</p>
+
+	<h2>No Squeezing</h2>
+
+	<p>I'm going to go on a little tagent now and talk about something I didn't do, and something you shouldn't do. If after reading the above you think that this would be a <i>really</i> good fit for compression. Stop.</p>
+
+	<img src="https://media1.tenor.com/m/mZZoOtDcouoAAAAC/stop-it-get-some-help.gif" class="embed-gif">
+
+	<p>By compressing the data archives, the methods in which compression works completely reoganizes the data in a way that sabotages the effective chunk-differential methods used by platforms like Steam. Instead of having nice ordered files, you create a pile of spaghetti where changing one byte of a file means the entire file potentially changed.</p>
+
+	<p>Also, it's pointless. Distribution platforms will <b>already</b> compress the data when they update your game, and they're far more effective at it than you putting your entire game data under a hydrallic press. Stop it.</p>
+
+	<img src="https://media1.tenor.com/m/HXpSbUdcz38AAAAC/dont-even-think-about-it-victor-sullivan.gif" class="embed-gif">
+
+	<p>An even worse idea, which is popular with games made in Unreal Engine, is to encrypt the archives. If you think this is a good idea, you're wrong. Encryption, by it's very design, will completely scramble the data. Even on a per-file level, a single byte of difference changes the entire encrypted file.</p>
+
+	<p>But it's secure, right? No. It takes less than 30 seconds to Google how to access the contents of any Unreal Engine game. If you're putting the data on a users computer, you have to give them the encryption key, which entirely defeats the point of encrypting it in the first place.</p>
+
+	<p>I'm not pointing at anyone in particular, however it's very annoying to get 200GB updates on Sea of Thieves because they changed the colour of a hat which completely changed the fabric of the entire seven seas.</p>
+
+	<img src="https://media1.tenor.com/m/OUpRTq72mzsAAAAC/daddys-home2-daddys-home2gifs.gif" class="embed-gif">
+
+	<p>Again: learn the art of less.</p>
+
+	<h2>The Map of Memory</h2>
+
+	<p>Phew, tangent over. Let's get back on track. So we've got our data in these nice juicy archives. For each archive, we have a single file handle, and reading a file is as simple as reading X bytes at Y offset from Z archive, and boom.</p>
+
+	<p>We simply allocate a chunk of memory, read that data in, process it, and then free the memory. But what if we didn't need to allocate and free anything at all? The lifetime of most data in a game engine means that we essentially throw it away immediately after we load it. Textures and models get uploaded to the GPU, or data gets converted into some new in-memory representation.</p>
+
+	<img src="https://media1.tenor.com/m/Pm0c3mefjuIAAAAC/we-can-do-so-much-better-what-a-shame.gif" class="embed-gif">
+
+	<p>This is where memory mapping (or virtual files) come in to play. Instead of ever loading an archive file, we instead tell the operating system to load the entire thing into virtual memory. The kernel will then give us an address (pointer) in memory where the file is.</p>
+
+	<p>Wait, so we just loaded the ENTIRE game into RAM? Isn't that incredibly wasteful? Yes, but it's not actually in memory. It's in VIRTUAL memory. Essentially, we're pretending it's in memory.</p>
+
+	<img src="https://media1.tenor.com/m/1SDTHgTkXP4AAAAd/vae.gif" class="embed-gif">
+
+	<p>With our magical pointer into memory that doesn't physically exist, we can now access it as if it did exist. Completely transparently to us, the operating system will manage the page tables and CPU faults, mapping the data into the address space in real-time as we access it.</p>
+
+	{{video=static/images/posts/images/004_mmap.webm}}
+
+	<p>To read a file now we no longer need a system call and we no longer need to allocate or free any memory. Remember, a game engine will be dealing with thousands of files, and often in rapid succession when streaming large worlds, so this adds up. For things like textures, models etc, we can buffer that data directly to the GPU without allocating anything.</p>
+
+	<img src="https://media1.tenor.com/m/N342b6qb0soAAAAC/back-to-the-future-marty-mcfly.gif" class="embed-gif">
+
+	<h2>Closing Notes</h2>
+
+	<p>In summary, I've built a nice little system where all the data is packed into archives, file references are automatically managed by the build pipeline, and archives are loaded into virtual memory making it nice and efficient for streaming data in real-time.</p>
+
+	{{image=static/images/posts/images/004_final.png}}
+</section>
+{{post_nav}}
+{{likes}}
+{{comments}}
