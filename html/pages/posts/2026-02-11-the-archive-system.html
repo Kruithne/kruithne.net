@@ -81,6 +81,8 @@
 
 	{{video=static/images/posts/images/004_chunks.webm}}
 
+	<p>To resolve this, we just create a simple reservation list that persists between builds. A file known to have an ID will reserve that ID on the next build. Additionally, they'll reserve their space in an archive as well. Before filling an archive, files with a reserved spot are ushered in first, then the remaining space is filled in to prevent gaps</p>
+
 	<p>This works great for the release builds, but it's a lot of work to do every time I want to test a build, which is sometimes hundreds of times an hour. So for debugging builds, it bypasses all of this and simply reads the files directly from disk - best of both worlds!</p>
 
 	<h2>No Squeezing</h2>
