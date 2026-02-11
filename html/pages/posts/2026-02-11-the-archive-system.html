@@ -45,7 +45,7 @@
 
 	<p>For our archive system, this means we need to also pack in the file paths into the index, and come up with an efficient way to sort them so we can take a file path and look it up in the index. We could utilize a tree, or maybe hash the file path... hold on, why even bother?</p>
 
-	<p>I've built a system that packs the game data into archives, the code for the game already has to be compiled, and the computer doesn't care either way. Let's just drop the strings, and files will be referenced by ID.</p>
+	<p>I've built a system that packs the game data into archives, the code for the game already has to be compiled, and computers greatly prefer numbers. Let's just drop the strings, and files will be referenced by ID.</p>
 
 	<img src="https://media1.tenor.com/m/Dw2O3-hDV_IAAAAC/do-you-have-id-who-are-you.gif" class="embed-gif">
 
@@ -53,7 +53,7 @@
 
 	<p>Every file exists in the index, and by the definition of being sequential, they already have an ID - their index in the index. The first file is at index 0, the next 1, 2, 3 and so on. If we use the index instead of assigning another layer, we don't need to do anything!</p>
 
-	<p>If we want to get file ID <code>n</code>, then we simply read 12 bytes from the index at position <code>4 + n</code>. The 4 is to offset from the entry count at the start of the index. From this simple memory read we have the archive, offset and size of our file.</p>
+	<p>If we want to get file ID <code>n</code>, then we simply read 12 bytes from the index at position <code>4 + (n * 12)</code>. The 4 is to offset from the entry count at the start of the index. From this simple memory read we have the archive, offset and size of our file.</p>
 
 	{{video=static/images/posts/images/004_lookup.webm}}
 
@@ -95,11 +95,13 @@
 
 	<img src="https://media1.tenor.com/m/HXpSbUdcz38AAAAC/dont-even-think-about-it-victor-sullivan.gif" class="embed-gif">
 
+	<i>Yes, you could do per-file compression within archives, but unless you're doing your own distribution system then this again is pointless because the distributor already compresses differential chunks.</i>
+
 	<p>An even worse idea, which is popular with games made in Unreal Engine, is to encrypt the archives. If you think this is a good idea, you're wrong. Encryption, by it's very design, will completely scramble the data. Even on a per-file level, a single byte of difference changes the entire encrypted file.</p>
 
 	<p>But it's secure, right? No. It takes less than 30 seconds to Google how to access the contents of any Unreal Engine game. If you're putting the data on a users computer, you have to give them the encryption key, which entirely defeats the point of encrypting it in the first place.</p>
 
-	<p>I'm not pointing at anyone in particular, however it's very annoying to get 200GB updates on Sea of Thieves because they changed the colour of a hat which completely changed the fabric of the entire seven seas.</p>
+	<p>I'm not pointing at anyone in particular, however it's very annoying to get 200GB updates because they changed the colour of a hat which completely changed the fabric of the entire seven seas.</p>
 
 	<img src="https://media1.tenor.com/m/OUpRTq72mzsAAAAC/daddys-home2-daddys-home2gifs.gif" class="embed-gif">
 
