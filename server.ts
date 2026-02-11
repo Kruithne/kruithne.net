@@ -152,6 +152,7 @@ async function get_thumb(input: string): Promise<ThumbResult> {
 const global_sub_table = {
 	cache_bust: spooder.cache_bust,
 	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
+	video: (vid_path: string) => `<div class="image"><video src="/${spooder.cache_bust(vid_path)}" autoplay loop muted playsinline></video></div>`,
 	thumb: async (input: string) => {
 		const { thumb_src, full_src, popout, title, pending_key, width, height } = await get_thumb(input);
 		const title_attr = title ? ` title="${title}"` : '';
