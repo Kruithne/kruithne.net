@@ -274,6 +274,10 @@ cite {
 	text-align: center;
 }
 
+code {
+	color: orange;
+}
+
 .spacer {
 	height: 30px;
 }
