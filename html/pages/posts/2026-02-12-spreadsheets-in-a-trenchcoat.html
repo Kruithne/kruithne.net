@@ -1,0 +1,171 @@
+<template id="post-meta">
+	<meta name="description" content="Secret revealed: video games are actually spreadsheets in a trenchcoat.">
+	<meta name="image" content="static/images/posts/embeds/005_spreadsheets.webp">
+</template>
+<h1>Spreadsheets in a Trenchcoat</h1>
+<time datetime="2026-02-12">12th February 2026</time>
+<section>
+	<p>We've had one post about data, but what about a second one? In the last post I went over the archive system I've built for the engine so we can efficiently access data files. This could be textures, audio, models, etc. But there's another type of data - actual data!</p>
+
+	<p><i>How much XP do you get per level? What music do we play in a specific zone? What items does an NPC drop? What's the scaling curve for weapon damage?</i></p>
+
+	<p>We don't want to hard-code this kind of data into the game - it would be a nightmare to maintain, so we need to put it somewhere. What we need is a good old fashioned spreadsheet.</p>
+
+	{{image=static/images/posts/images/005_spreadsheet.png}}
+	<cite>Data credit: Blizzard Entertainment</cite>
+
+	<h2>Freak In The Sheets</h2>
+
+	<p>The secret is out. Video games are actually a bunch of spreadsheets in a trenchcoat. But how do we take a spreadsheet and actually make it useable in the game? Let's do the stupid thing first, and we'll work up to something better.</p>
+
+	{{image=static/images/posts/images/005_spreadsheet_quests.png}}
+
+	<p>Great. We've made a spreadsheet with the quests for our game in it. Now the only reasonable way to export this data is as a <code>Comma Separated Values</code> (CSV) file, and that is exactly what it says on the tin.</p>
+
+	{{image=static/images/posts/images/005_csv.png}}
+
+	<p>Parsing this is simple, we iterate over the rows and split them by comma, parsing the individual fields into memory.</p>
+
+	<p><i>There's three problems with this.</i></p>
+
+	<p><b>The first problem</b> is that it's slow. Okay, parsing two lines of text on a modern CPU is not "slow" by definition, but what about when we have 10k or 100k rows in a table? Parsing plaintext will almost always be slower than a custom binary format. So why be lazy?</p>
+
+	<p><b>The second problem</b> is this requires effort. We just store all of the game data in Excel and then save them out every time we make a change? We're not cave-people.</p>
+
+	<p><b>The third and biggest problem</b> is efficiency. If we end up with 10,000 rows of data, what if we want to just periodically lookup one row? We either have to load the entire thing into memory and build an index, or we need to scan through the file to find it. Both suck.</p>
+
+	<img src="https://media1.tenor.com/m/X0fdzIdbAWAAAAAC/i-aint-doing-this-devale-ellis.gif" class="embed-gif">
+
+	<h2>All Your Base Are Belong To Us</h2>
+
+	<p>Okay, the next logical step is to look at an actual database then. In web development, you'd utilize a database server such as MySQL, MariaDB, PostgreSQL and so on. These are a separate process on the same or different machine that you call out to using a query language to access data.</p>
+
+	{{image=static/images/posts/images/005_sql.png}}
+
+	<p>While on the surface that seems okay, it's not ideal. We can't run a database server on the players computer (okay we "can", but we shouldn't), and having to call out to a remote server for all the data is insane. Even just calling to another process on the same machine is not within reason for a performant game engine.</p>
+
+	<p>Instead, let's look to those who follow <a href="https://sqlite.org/codeofethics.html">The Rule of St. Benedict</a>. SQLite is an <code>in-process</code> database library. No server, no processes. It's efficient, it's fast, and the data is binary. It's perfect, right?</p>
+
+	<img src="https://media1.tenor.com/m/FuhGAiGdEKIAAAAC/kruithne-sonic.gif" class="embed-gif">
+
+	<p>At first glance, strapping SQLite to the engine and calling it a day does seem appealing, the most important thing is that it <i>would work</i>. But at what cost? We're adding in all this overhead for query parsing, B-tree structures, transaction logic... we don't actually need any of this.</p>
+
+	<p>Remember the rule? Do less.</p>
+
+	<h2>The Hard Way</h2>
+
+	<p>Now that I've crapped all over the other ideas (it's important to consider everything) the answer is obvious: we want something that fills a specific set of critera, so let's just make it ourselves.</p>
+
+	<p>Let's start by structuring the data. Given the quest table example, we'd probably want the structure of a row to look something like this:</p>
+
+	{{image=static/images/posts/images/005_quest.png}}
+
+	<p>Alright, simple enough. Now if we lay that out into a file by simply writing them one after the other, we've got ourselves a simple binary format.</p>
+
+	{{image=static/images/posts/images/005_binary.png}}
+
+	<p>The first problem immediately obvious in the above image is that the rows are different sizes, because strings can be different sizes. This is a problem because in order to do random access, we need to parse all the other rows first - not efficient.</p>
+
+	<p>Solving this is simple logistics. Take the strings out of the inline data and store them at the end of the file in a "string block", and then inline we just store the offset (into the string block) and the length, which is consistently <code>8 bytes</code>.</p>
+
+	<p>Now we can easily access any row of data by reading <code>row_size</code> bytes at <code>(n * row_size)</code> in the row data, and then if we need the strings, we can read them from the string block.</p>
+
+	{{image=static/images/posts/images/005_string_block.png}}
+
+	<p>Another optimization we can sprinkle in here is that we can de-duplicate strings inside the string block. If the string "Wizard" appears 200 times in a table, we only need to store it once in the string block and all the rows can reference it.</p>
+
+	{{image=static/images/posts/images/005_string_dedup.png}}
+
+	<h2>You Need ID</h2>
+
+	<p>Looking up a row in our new format is easy and fast, providing you know the index, but we probably want to look up a row by an ID in most cases. To solve this, we add another block called an "ID block".</p>
+
+	<p>The ID block is a sequence of IDs written one after the other as a <code>uint</code>. When we read the ID block, we associate the ID we read with the index at which we read it and store this in a <code>HashMap</code>.</p>
+
+	{{image=static/images/posts/images/005_index.png}}
+
+	<p>We now have a quick way to lookup an ID in our table. But immediately after building this, it felt like there was a lot of optimization left on the table. Perhaps premature optimization (the root of all evil), but it's low-hanging fruit that doesn't take a lot of work. Let's not be lazy!</p>
+
+	<p>The first is simple. In the ID block, we're storing each ID as a <code>uint</code> which is 4 bytes, which means we can have over <code>4 billion</code> entries. Realistically? We're not hitting that limit. If we stored it as <code>short</code> instead, we could have up to <code>65,535</code> rows, more reasonable. If we stored it as a <code>byte</code> we could have up to <code>255</code> rows.</p>
+
+	<p>Instead of picking a middle-ground, I simply added a flag value to the table which has three flags: <code>FLAG_ID_BYTE</code>, <code>FLAG_ID_SHORT</code> and<code>FLAG_ID_INT</code>. When we compile a table, we use the smallest value depending on how many rows it has. For most tables, it only has to use 2 bytes per row to form the ID block.</p>
+
+	{{image=static/images/posts/images/005_id_comp.png}}
+
+	<p>If you're thinking that was a premature optimization, you are correct. For a lot of software it doesn't matter, but the mentality of seeing something that could obviously be better - <i>even if minutely</i> - and fixing it rather than leaving it has rippling effects through your work. In a game engine, you want to squeeze out frames as fast as technically possible, so these things add up.</p>
+
+	<p>What next? If we look at an ID block in a data table, for <b>most</b> of our use cases, the IDs will be sequential. 1, 2, 3, 4, and so on. Which means our ID block, a lot of the time, is a continuous sequence of numbers.</p>
+
+	<p>This opens the door for an optimization I've named <code>sparse ID block</code>. When we compile the table, if the ID block is a complete sequence, we write <b>only</b> the first ID, and set a <code>FLAG_ID_SPARSE</code> flag.</p>
+
+	{{image=static/images/posts/images/005_sparse.png}}
+
+	<p>The engine will see this flag, it already knows how many rows are stored in a table, so now it knows every row is <code>n + start_id</code>. Even better, since we know the ID block is sequential with no gaps, we can throw the HashMap in the bin and just do a <code>O(1)</code> lookup directly with <code>row_idx = id - sparse_first_id</code>. Best-case scenario!</p>
+
+	<p>This might seem like a small optimization for a table with 8 rows, we save 4 bytes. But for a table with 100,000 rows, we save 400,000 bytes (400kb), and we've also got <code>O(1)</code> lookups at runtime!</p>
+
+	<p>Cool, what about if I now delete row 50? We have a hole in the middle of the table, and we can't do a sparse ID block. For that, we revert to using a HashMap at runtime for the lookups, but we can still save some bytes in the ID block by ranging.</p>
+
+	<p>Instead of storing 1 through 100 sequentially and missing out 50, we set a <code>FLAG_ID_RANGES</code> and store a set of ranges: <code>1-49,51-100</code>.</p>
+
+	{{image=static/images/posts/images/005_range.png}}
+
+	<p><i>The range compression is a goofy one, and I'm not sure I like it, but it works and it's there so c'est la vie!</i></p>
+
+	<p>There are some scenarios where these optimizations actually play out worse. If we have a small table with lots of holes, the range optimization ends up using a lot more space than sequential. So before compiling a table, the build system checks mathmatically which one is actually the sensible pick, and applies that, instead of assuming.</p>
+
+	<h2>Localization</h2>
+
+	<p>Something every game engine needs is localization. It might seem a little crazy that I'm tackling this so early on, but it needs to be done at some point and it makes sense to build it in here, deep in the roots.</p>
+
+	<p>Why here? If you look at the format we have for a data table so far, it's actually really easy to localize the entire game with one change right here: make the localization a zero-indexed identifier, and then simply index into a different set of data.</p>
+
+	{{image=static/images/posts/images/005_localization.png}}
+
+	<p>Originally, I had thought to swap out the <code>string block</code>, but the inline data for string references stores an <code>offset</code> and a <code>length</code>, and strings will be different lengths in different locales, so instead it made more sense to make the inline data change.</p>
+
+	<p>One optimization I did make here is that localization support on a table is opt-in, since it makes no sense to duplicate weapon damage data for every locale. Only a table flagged for localization supports this, to keep things lean.</p>
+
+	<h2>Indexing</h2>
+
+	<p>The next challenge I came across was indexing. We can access rows of data very efficiently by ID, but what if we want to do a lookup on another column? We'd have to load the entire table and scan through until we found a match.</p>
+
+	<img src="https://media1.tenor.com/m/Qwbnh-dLz90AAAAC/iyanla-not-on-my-watch.gif" class="embed-gif">
+
+	<p>This is not a new problem to solve, database indexes are widely used, so I just took a leaf out of that book. Certain fields get marked with an <code>Indexed</code> alias type in the schema.</p>
+
+	{{image=static/images/posts/images/005_indexed.png}}
+
+	<p>This essentially encodes another block in a similar format to the ID block, just for this column. When we do a lookup against this column, we do a quick binary search over the block to get the offset into the row block we need.</p>
+
+	{{image=static/images/posts/images/005_indexing.png}}
+
+	<p>In addition, I also added a <code>StringIndexed</code> type which allows us to index string columns. This works the same except offsets are stored in lexicographic order based on the string they represent.</p>
+
+	<h2>Editing</h2>
+
+	<p>Now that we've gone through how our magical spreadsheet format works, there's one big obvious question. How do we actually edit these?</p>
+
+	<img src="https://media1.tenor.com/m/DNCBqbguizsAAAAd/magic.gif" class="embed-gif">
+
+	<p>No, not magic. Originally, I wrote a C# WinForms editor that was external to the game. It essentially acted like Excel, and would pump out the binary tables for the game to use. This worked great as an initial prototype.</p>
+
+	<p>When it came to implement hot-reloading to make my life easier, I decided to pivot and see what an in-game data table editor would look like.</p>
+
+	{{image=static/images/posts/images/005_dbedit.png}}
+
+	<p>As it turns out, really good! I quickly fleshed this out with some quality-of-life features such as importing/exporting, localization fallback, filtering, etc. It works out really nicely, and there's no faster way to edit game data than doing it directly in-game. The changes are effective immediately, helping keep a tight iteration loop.</p>
+
+	<h2>Closing Notes</h2>
+
+	<p>I didn't squeeze everything that my data table format supports into this post, because it's already quite long, but two honorable mentions are that it supports file references that I talked about in <a href="https://www.kruithne.net/posts/2026-02-11-the-archive-system">The Archive System</a> with an in-editor file picker.</p>
+
+	<p>The second thing is some of the technical decisions in this format were designed around the virtual memory approach I spoke about in that previous post. When loading a table, only the header is parsed, everything else is accessed on-demand with zero-copy, making it really efficient.</p>
+
+	<p>I'm sure nothing I've covered here today is "new", and probably seems a lot like reinventing a wheel, but that's not a bad thing. The format is hand-crafted for the purposes of the engine, and means I understand it inside and out, allowing me to tailor optimizations for specific use-cases.</p>
+
+	<img src="https://media1.tenor.com/m/_n_jxpQJ7b4AAAAd/tables-i-think-you-should-leave-with-tim-robinson.gif" class="embed-gif">
+</section>
+{{post_nav}}
+{{likes}}
+{{comments}}
