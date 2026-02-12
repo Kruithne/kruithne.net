@@ -102,7 +102,7 @@
 
 	<p>The engine will see this flag, it already knows how many rows are stored in a table, so now it knows every row is <code>n + start_id</code>. Even better, since we know the ID block is sequential with no gaps, we can throw the HashMap in the bin and just do a <code>O(1)</code> lookup directly with <code>row_idx = id - sparse_first_id</code>. Best-case scenario!</p>
 
-	<p>This might seem like a small optimization for a table with 8 rows, we save 4 bytes. But for a table with 100,000 rows, we save 400,000 bytes (400kb), and we've also got <code>O(1)</code> lookups at runtime!</p>
+	<p>This might seem like a small optimization for a table with 8 rows, we save 4 bytes. But for a table with 100,000 rows, we save 400,000 bytes (~390kb), and we've also got <code>O(1)</code> lookups at runtime!</p>
 
 	<p>Cool, what about if I now delete row 50? We have a hole in the middle of the table, and we can't do a sparse ID block. For that, we revert to using a HashMap at runtime for the lookups, but we can still save some bytes in the ID block by ranging.</p>
 
