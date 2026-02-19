@@ -1,0 +1,142 @@
+<template id="post-meta">
+	<meta name="description" content="Implementing Lua scripting and a user interface system into my handmade game engine">
+	<meta name="image" content="static/images/posts/embeds/006_scripts.webp">
+</template>
+<h1>Sticking to the Script</h1>
+<time datetime="2026-02-19">19th February 2026</time>
+<section>
+	<p>One thing that I decided in my head before I wrote any code was that I wanted to include <a href="https://www.lua.org/">Lua</a> in the engine. For a scripting language, it has a tiny footprint (200-300kb) and it's super easy to embed in a C codebase. Also I just really like it.</p>
+
+	<img src="https://media1.tenor.com/m/c8jTuqVEbpwAAAAd/i-like-it-a-lot.gif" class="embed-gif">
+
+	<p>Most game engines need a scripting language. The core of the engine - the stuff that needs to go really fast - you write that in your native language, which in this case is <a href="https://c3-lang.org/">C3</a>. But the <i>meat</i> of a game is going to be gameplay scripts.</p>
+
+	<p>You <i>could</i> write everything natively, but then you need to re-compile the engine for every small change. There is the option of separating core logic into a dynamic library and hot-reloading that, but it's more effort than it's worth.</p>
+
+	<p>With a scripting language, you also simplify things into a scripting API, which makes writing game logic more straight-forward. There's a reason games use scripting languages for scripts - the key is in the name!</p>
+
+	{{image=static/images/posts/images/006_lua.png}}
+	<cite>Pseudo-example of game logic in Lua</cite>
+
+	<p>The single biggest advantage? Hot-reloading. When iterating on something like a dungeon or a boss-fight, being able to adjust the logic and then immediately test that in-game without even restarting the game helps maintain the tight development loop I've been focused on.</p>
+
+	<h2>You Have Been Framed</h2>
+
+	<p>With Lua hooked up in the engine and the ability to execute scripts... well they need to be able to do something now. Since we've no concept of a "world" or "player" yet, I started with something easier and decided to build the foundations of a user interface.</p>
+
+	<p>It's easy to jump in and start over-complicating a system straight out of the gate. Instead, I always try to do the dumb simple thing <i>first</i>, and build off that. Let's start with the concept of frames.</p>
+
+	{{image=static/images/posts/images/006_frame.png}}
+
+	<p>So we've got <code>ui_create_frame</code> which as the label says, creates a frame. We can then position and size that frame using <code>set_position</code> and <code>set_size</code>, and then lastly we've got <code>set_background</code>.</p>
+
+	<p>Instead of passing in raw RGB values (or worse) which then get converted into a struct on the C-side every time, which ends up with a bunch of structs for the same colours, I opted to just add <code>create_colour</code> which returns a re-usable pointer to a struct. Also keeps things tidy on the Lua side too.</p>
+
+	{{image=static/images/posts/images/006_orangebox.png}}
+
+	<p>There we have it, the orangebox. Unfortunately this one doesn't include <a href="https://en.wikipedia.org/wiki/The_Orange_Box">Half-Life 2</a>. That seemed really easy? Like I said earlier, that's one of the main goals with a scripting language, is to take all of your messy wiring and hide it behind a nice abstraction. The underlying code is less appealing.</p>
+
+	{{image=static/images/posts/images/006_create_color.png}}
+	<cite>Source behind create_colour</cite>
+
+	<p>As for the frames themselves, the principal is the same. <code>ui_create_frame</code> returns a pointer to a struct in memory. That struct has a position and a size, and on each frame we iterate the frame "stack" and render them to the screen.</p>
+
+	<p>For memory management, UI components (frames, colours, etc) are allocated into an arena. I won't dive into arena allocation here, but Ryan Fleury has a <a href="https://www.dgtlgrove.com/p/untangling-lifetimes-the-arena-allocator">great article about them here</a> if that tickles your pickle.</p>
+
+	<p>In most scenarios, frames are created and then kept around either on the screen or something that can be toggled on and off (like an inventory), so I opted to make it that frames cannot be deleted. Instead, their lifetime is tied to the "interface". If the interface reloads, the memory arena is simply purged and the scripts re-executed.</p>
+
+	<h2>Border Control</h2>
+
+	<p>We can make solid rectangles, that's great, but let's step it up a bit and add some borders. I kept this simple with a two-pass approach, the "border" is a larger rectangle drawn first sized at <code>dimension + border_size * 2</code> and offset by <code>border_size</code> on each side, then the background rectangle drawn as normal on top.</p>
+
+	{{image=static/images/posts/images/006_border.png}}
+
+	<p><i>Have you seen those rectangles from Hammerfell? They've got curved corners!</i></p>
+
+	<p>I wanted a dynamic way to do curved corners (like border radius in CSS). In most games, this is achieved by using a texture in what's called a <a href="https://en.wikipedia.org/wiki/9-slice_scaling">9-slice</a>, but that's not dynamic, so instead I looked at <a href="https://en.wikipedia.org/wiki/Signed_distance_function">signed distance functions</a> like I did <a href="https://www.kruithne.net/posts/2026-02-05-these-words">for the font rendering</a>.</p>
+
+	{{image=static/images/posts/images/006_rect_sdf.png}}
+
+	<p>This simple function in our fragment shader for the frames gives us exactly what we need to implement a convenient <code>set_border_radius</code> function in our Lua API.</p>
+
+	{{image=static/images/posts/images/006_border_radius.png}}
+
+	<h2>Order In The Court</h2>
+
+	<p>Now that we've got frames, we need order. At the moment, we render frames in the order that they're created. The first foundation in frame ordering was straight-forward: allow frames to have parents. If a frame belonged to another frame, then it obviously renders on top of it.</p>
+
+	{{image=static/images/posts/images/006_parents.png}}
+
+	<p>What if we have two frames that are siblings, and we want one to appear higher than the other? We can look at CSS again for this and implement z-indexing. Each frame gets a z-index (0 by default), and the higher the z-index, the higher they render.</p>
+
+	{{image=static/images/posts/images/006_zindex.png}}
+
+	<p>Getting there! This works when we know we want A to appear above B, but this falls into a similar problem CSS has which is assigning a z-index to everything (we've all given something a z-index of 99999 at some point). The last cog in the rendering priority is a broader category: render layers.</p>
+
+	{{image=static/images/posts/images/006_renderlayer.png}}
+
+	<p>Render layers are essentially buckets I can throw things in when I know roughly where they stack. It ranges from BACKGROUND, LOW, MEDIUM (default), HIGH, OVERLAY and FULLSCREEN. This might seem familiar to people who have created an add-on in World of Warcraft, as it's essentially the <a href="https://wowpedia.fandom.com/wiki/Frame_Strata">frame strata</a> used in that game.</p>
+
+	<p>And that's how I achieve order. The render layer is the primary bucket, then the accumulated z-index within the same layer, accounting for depth of the parent chain, and then finally when there's no other differences left, it comes down purely to which frame has a higher pointer address.</p>
+
+	<h2>These Are Some Words</h2>
+
+	<p>In <a href="https://www.kruithne.net/posts/2026-02-05-these-words">a previous devlog post</a>, I went over how I render text in my engine. The next logical step is to hook that up to the Lua API so we can utilize it, obviously.</p>
+
+	{{image=static/images/posts/images/006_text.png}}
+
+	<p>Having implemented the meat behind the font rendering a couple of weeks ago, having it finally distilled into such a basic little API was a very nice feeling. <code>UI_FONT_CODE</code> is a global constant programatically injected into the Lua runtime based on available fonts in the engine.</p>
+
+	<p>Next on the list: alignment and newlines. If we want text to span across multiple lines, we could just create multiple text frames, but we're not cave people. Instead, newline characters are automatically handled by the engine, along with some basic text alignment.</p>
+
+	{{image=static/images/posts/images/006_newlines.png}}
+
+	<p>That felt like a good start, but if we consider something like quest text or dialog in a game, it's a tad cumbersome to insert the newlines manually, I thought. Sprinkle in a little <code>set_max_width</code> and we can solve this; it works nicely with the text alignment.</p>
+
+	{{image=static/images/posts/images/006_hedgehog.png}}
+
+	<h2>Anchors Away</h2>
+
+	<p>At the moment we can position an interface frame using <code>set_position</code>, but that's quite basic. What if I want something to appear in the top-right corner of the screen? Or underneath another frame?</p>
+
+	<p>To solve this issue, I once again took inspiration from Blizzard with their <a href="https://warcraft.wiki.gg/wiki/Anchors">frame anchoring</a>. It looks a little something like this:</p>
+
+	{{image=static/images/posts/images/006_anchoring.png}}
+
+	<p>Hopefully self-explanatory. The first parameter takes an anchor point constant (<code>UI_ANCHOR_CENTER</code>, <code>UI_ANCHOR_TOP_RIGHT</code>, <code>UI_ANCHOR_BOTTOM</code>, etc) which is the point on the frame itself. The next two parameters are the offset. The third parameter is the relation point on the target (defaults to the screen), and the final parameter is optionally a target frame to anchor to.</p>
+
+	{{image=static/images/posts/images/006_anchors.png}}
+
+	<h2>Picture This</h2>
+
+	<p>What's missing? Textures. A user interface wouldn't be complete without textures. Texture support in the engine is basic, so it doesn't warrant a devlog post by itself. I wanted the best of both worlds: a format that was sensible for rendering, this means something I can pass directly to the GPU without decoding it first, but also keeping development cycle as short as possible.</p>
+
+	<img src="https://media1.tenor.com/m/ZjqPAZpKWAUAAAAC/the-road-to-el-dorado-both.gif" class="embed-gif">
+
+	<p>For this, I worked backwards. What gives me the quickest turn-around for development? Since PNGs are the most widely supported lossless format, being able to just throw those into a folder would be <b>great</b>.</p>
+
+	<p>So that's what I did. Since this would only be used in development builds, I grabbed <a href="https://github.com/nothings/stb">stb_image</a> which is a single-file C header and linked that with <code>STBI_ONLY_PNG</code>.</p>
+
+	{{image=static/images/posts/images/006_duck.png}}
+	<cite>Duck source: vecteezy.com</cite>
+
+	<p>This works, but it requires PNG decoding in the engine. Is this a major problem? Honestly, no. PNG decoding is fast enough, but why be "fast enough" when you can be faster? "Premature optimization is the root of all evil" doesn't directly translate to "do the quicker thing every time because it's good enough"; the core mindset applied at a foundational level will compound as a project develops. And don't say "we'll fix it later", because we never do.</p>
+
+	<p>For release builds, <b>hogpack</b> (the tool I'm building to compile the engine) automatically decodes PNG images and compresses them using <a href="https://en.wikipedia.org/wiki/S3_Texture_Compression">S3 Texture Compression</a>, specifically BC7 and BC4.</p>
+
+	{{image=static/images/posts/images/006_s3comp.png}}
+	<cite>Source: Wikipedia</cite>
+
+	<p>Why the two different formats? I use BC7 for multi-channel textures like the lovely duck I posted above. For some use-cases however, such as terrain heightmaps or texture masks, we only need a single channel for the intensity value. Using BC7 always encodes 3 (RGB) or 4 (RGBA) channels in every block, which is wasteful. BC4 uses half the block size of BC7 (8 bytes vs 16 per 4x4 block), which ends up using half the VRAM.</p>
+
+	<p>Utilizing BC7/BC4, I can now upload the textures directly to the GPU without having to decode/decompress anything on the CPU. Since the games I'm intending to make won't be very GPU heavy (compared to modern games), it makes sense to give it <i>something</i> to do.</p>
+
+	<h2>Closing Notes</h2>
+
+	<p>That's pretty much it for the bulk of the interface. There's a few things I didn't feature here such as some basic grid support (CSS-like) and some other mundane API stuff, but overall it's shaped up quite nicely.</p>
+
+	<img src="https://media1.tenor.com/m/gyn15RqgMxwAAAAC/yaaassss-onward.gif" class="embed-gif">
+</section>
+{{post_nav}}
+{{likes}}
+{{comments}}
