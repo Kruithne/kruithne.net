@@ -1014,16 +1014,11 @@ a.view-post-link:hover {
 	}
 
 	#desktop-icons {
-		top: -105px;
+		top: -115px;
 		left: 50%;
 		right: auto;
 		transform: translateX(-50%);
 		gap: 15px;
-	}
-
-	.desktop-icon .icon-img {
-		width: 24px;
-		height: 24px;
 	}
 
 	h1 {
