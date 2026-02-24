@@ -994,7 +994,7 @@ a.view-post-link:hover {
 	}
 
 	#content-window {
-		margin-top: 70px;
+		margin-top: 120px;
 	}
 
 	#avatar-window {
@@ -1014,11 +1014,10 @@ a.view-post-link:hover {
 	}
 
 	#desktop-icons {
-		position: static;
-		justify-content: center;
-		background: var(--vga-teal);
-		padding: 10px;
-		margin: 0 -2px;
+		top: -105px;
+		left: 50%;
+		right: auto;
+		transform: translateX(-50%);
 		gap: 15px;
 	}
 
