@@ -18,19 +18,11 @@
 		<meta name="twitter:card" content="summary_large_image"/>
 		<meta name="twitter:description" content="{{ page_description }}"/>
 		<meta name="twitter:image" content="{{ page_image }}"/>
-		<meta name="theme-color" content="#1d4c6c"/>
+		<meta name="theme-color" content="#008080"/>
 		<link rel="preload" href="/static/fonts/google-sans-code-latin.woff2" as="font" type="font/woff2" crossorigin>
-		<link rel="preload" href="/static/fonts/atma-latin-400.woff2" as="font" type="font/woff2" crossorigin>
 		<link rel="stylesheet" href="/{{cache_bust=static/css/global.css}}"/>
 	</head>
 	<body>
-		<svg style="display: none;">
-			<filter id="wonky">
-				<feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise"/>
-				<feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
-			</filter>
-		</svg>
-		<div id="nav-overlay"></div>
 		<div id="image-popout-overlay">
 			<button id="image-popout-close" aria-label="Close image">
 				<span></span>
@@ -44,36 +36,72 @@
 			</div>
 		</div>
 		<div id="page-container">
-			<div id="content-container">
-				<a href="/" id="main-avatar"></a>
-				<div id="main-nav">
-					<button id="nav-toggle" aria-label="Toggle navigation">
-						<span></span>
-						<span></span>
-						<span></span>
-					</button>
-					<div id="nav-links">
-						<a href="/devlog">DevLog</a>
-						<a href="/projects">Projects</a>
-						<a href="/artwork">Artwork</a>
-						<a href="/contact">Contact</a>
+			<div id="content-window" class="c-ui-window c-ui-raised active">
+				<div class="titlebar active"></div>
+				<div id="avatar-window" class="c-ui-window c-ui-raised">
+					<div class="titlebar active">
+						<span class="title" data-pixel-title="kruithne.net">kruithne.net</span>
 					</div>
+					<a href="/" id="main-avatar"></a>
 				</div>
-				<div id="main-content">
+				<div id="desktop-icons">
+					<a href="/" class="desktop-icon">
+						<img class="icon-img" src="/{{cache_bust=static/images/icons/icon_home.webp}}">
+						<span>Home</span>
+					</a>
+					<a href="/devlog" class="desktop-icon">
+						<img class="icon-img" src="/{{cache_bust=static/images/icons/icon_devlog.webp}}">
+						<span>DevLog</span>
+					</a>
+					<a href="/projects" class="desktop-icon">
+						<img class="icon-img" src="/{{cache_bust=static/images/icons/icon_projects.webp}}">
+						<span>Projects</span>
+					</a>
+					<a href="/artwork" class="desktop-icon">
+						<img class="icon-img" src="/{{cache_bust=static/images/icons/icon_artwork.webp}}">
+						<span>Artwork</span>
+					</a>
+					<a href="/contact" class="desktop-icon">
+						<img class="icon-img" src="/{{cache_bust=static/images/icons/icon_contact.webp}}">
+						<span>Contact</span>
+					</a>
+				</div>
+				<div id="window-body">
 					{{ content }}
 				</div>
 			</div>
 		</div>
-		<footer>
-			<div id="footer-icons">
-				<a href="https://steamcommunity.com/id/kruithne" target="_blank">{{svg=static/images/logos/logo-steam.svg}}</a>
-				<a href="https://www.youtube.com/@kruithne" target="_blank">{{svg=static/images/logos/logo-youtube.svg}}</a>
-				<a href="https://x.com/Kruithne" target="_blank">{{svg=static/images/logos/logo-x.svg}}</a>
-				<a href="https://www.patreon.com/c/kruithne" target="_blank">{{svg=static/images/logos/logo-patreon.svg}}</a>
-				<a href="https://github.com/Kruithne/" target="_blank">{{svg=static/images/logos/logo-github.svg}}</a>
-				<a href="https://discord.gg/kC3EzAYBtf" target="_blank">{{svg=static/images/logos/logo-discord.svg}}</a>
-			</div>
-		</footer>
+		<div id="taskbar" class="c-ui-raised">
+			<button id="start-btn" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-start"></div>
+				<span>Start</span>
+			</button>
+			<a href="https://steamcommunity.com/id/kruithne" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-steam"></div>
+				<span>Steam</span>
+			</a>
+			<a href="https://www.youtube.com/@kruithne" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-youtube"></div>
+				<span>YouTube</span>
+			</a>
+			<a href="https://x.com/Kruithne" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-x"></div>
+				<span>X</span>
+			</a>
+			<a href="https://www.patreon.com/c/kruithne" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-patreon"></div>
+				<span>Patreon</span>
+			</a>
+			<a href="https://github.com/Kruithne/" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-github"></div>
+				<span>GitHub</span>
+			</a>
+			<a href="https://discord.gg/kC3EzAYBtf" target="_blank" class="taskbar-btn c-ui-raised">
+				<div class="taskbar-icon icon-discord"></div>
+				<span>Discord</span>
+			</a>
+			<div id="taskbar-clock"></div>
+		</div>
 		<script src="/{{cache_bust=static/js/global.js}}"></script>
 	</body>
 </html>

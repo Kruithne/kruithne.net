@@ -1,30 +1,293 @@
-const nav_toggle = document.getElementById('nav-toggle');
-const main_nav = document.getElementById('main-nav');
-const nav_links = document.getElementById('nav-links');
-const nav_overlay = document.getElementById('nav-overlay');
+// pixel font system
+const global_pixel_fonts = new Map();
 
-function open_nav() {
-	main_nav.classList.add('open');
-	nav_links.classList.add('open');
-	nav_overlay.classList.add('open');
+async function load_pixel_font_bin(font_name, bin_path) {
+	if (global_pixel_fonts.has(font_name))
+		return;
+
+	const res = await fetch(bin_path);
+	const array_buffer = await res.arrayBuffer();
+	const data = new DataView(array_buffer);
+
+	const magic = String.fromCharCode(data.getUint8(0), data.getUint8(1), data.getUint8(2), data.getUint8(3));
+	if (magic !== 'PFNT')
+		throw new Error('invalid font binary: bad magic');
+
+	const version = data.getUint32(4, true);
+	if (version !== 1)
+		throw new Error('unsupported font binary version: ' + version);
+
+	const num_sizes = data.getUint16(8, true);
+
+	const toc_entries = [];
+	let toc_offset = 10;
+	for (let i = 0; i < num_sizes; i++) {
+		const entry_pt_size = data.getUint16(toc_offset, true);
+		const pixel_height = data.getUint16(toc_offset + 2, true);
+		const char_count = data.getUint16(toc_offset + 4, true);
+		const data_offset = data.getUint32(toc_offset + 6, true);
+		const png_offset = data.getUint32(toc_offset + 10, true);
+		const png_size = data.getUint32(toc_offset + 14, true);
+
+		toc_entries.push({ entry_pt_size, pixel_height, char_count, data_offset, png_offset, png_size });
+		toc_offset += 18;
+	}
+
+	for (const entry of toc_entries) {
+		const characters = {};
+		let char_offset = entry.data_offset;
+		for (let i = 0; i < entry.char_count; i++) {
+			const char_code = data.getUint16(char_offset, true);
+			const x = data.getUint16(char_offset + 2, true);
+			const y = data.getUint16(char_offset + 4, true);
+			const width = data.getUint8(char_offset + 6);
+			const height = data.getUint8(char_offset + 7);
+
+			characters[String.fromCharCode(char_code)] = { x, y, width, height };
+			char_offset += 8;
+		}
+
+		const png_data = array_buffer.slice(entry.png_offset, entry.png_offset + entry.png_size);
+		const img = await createImageBitmap(new Blob([png_data], { type: 'image/png' }));
+
+		const full_font_name = font_name + '-' + entry.entry_pt_size + 'pt';
+		global_pixel_fonts.set(full_font_name, {
+			metadata: { pixel_height: entry.pixel_height, characters },
+			image: img
+		});
+	}
 }
 
-function close_nav() {
-	main_nav.classList.remove('open');
-	nav_links.classList.remove('open');
-	nav_overlay.classList.remove('open');
+function get_closest_font(font_name, target_size) {
+	const available_sizes = [];
+	for (const [key] of global_pixel_fonts) {
+		if (key.startsWith(font_name + '-')) {
+			const match = key.match(/-(\d+)pt$/);
+			if (match)
+				available_sizes.push(parseInt(match[1]));
+		}
+	}
+
+	if (available_sizes.length === 0)
+		return null;
+
+	available_sizes.sort((a, b) => a - b);
+
+	let closest = available_sizes[0];
+	let min_diff = Math.abs(target_size - closest);
+
+	for (const size of available_sizes) {
+		const diff = Math.abs(target_size - size);
+		if (diff < min_diff) {
+			min_diff = diff;
+			closest = size;
+		}
+	}
+
+	return global_pixel_fonts.get(font_name + '-' + closest + 'pt');
 }
 
-nav_toggle.addEventListener('click', function(e) {
-	e.stopPropagation();
-	if (nav_links.classList.contains('open'))
-		close_nav();
-	else
-		open_nav();
+function render_pixel_text(canvas, text, font_name, size, color, bold) {
+	const font = get_closest_font(font_name, size);
+	if (!font)
+		return;
+
+	const { metadata, image } = font;
+	const bold_spacing = bold ? 1 : 0;
+	const bold_offset = bold ? 1 : 0;
+	const text_chars = Array.from(text);
+
+	let width = 0;
+	for (const char of text_chars) {
+		const cd = metadata.characters[char];
+		if (cd)
+			width += cd.width + bold_spacing;
+	}
+	width += bold_offset;
+
+	canvas.width = width;
+	canvas.height = metadata.pixel_height;
+
+	const ctx = canvas.getContext('2d');
+	ctx.clearRect(0, 0, width, metadata.pixel_height);
+
+	let x = 0;
+	for (const char of text_chars) {
+		const cd = metadata.characters[char];
+		if (!cd)
+			continue;
+
+		ctx.drawImage(image, cd.x, cd.y, cd.width, cd.height, x, 0, cd.width, cd.height);
+
+		if (bold)
+			ctx.drawImage(image, cd.x, cd.y, cd.width, cd.height, x + 1, 0, cd.width, cd.height);
+
+		x += cd.width + bold_spacing;
+	}
+
+	if (color && color !== '#ffffff') {
+		ctx.globalCompositeOperation = 'source-in';
+		ctx.fillStyle = color;
+		ctx.fillRect(0, 0, width, metadata.pixel_height);
+		ctx.globalCompositeOperation = 'source-over';
+	}
+}
+
+function create_pixel_canvas(text, font_name, size, color, bold, scale) {
+	const canvas = document.createElement('canvas');
+	canvas.className = 'pixel-heading-canvas';
+	render_pixel_text(canvas, text, font_name, size, color, bold);
+	canvas.style.width = (canvas.width * scale) + 'px';
+	return canvas;
+}
+
+// bootstrap pixel font rendering
+document.addEventListener('DOMContentLoaded', async function() {
+	try {
+		await load_pixel_font_bin('sserife', '/static/fonts/sserife.pfnt');
+	} catch (e) {
+		console.error('failed to load pixel font:', e);
+		return;
+	}
+
+	// titlebars
+	const titlebars = document.querySelectorAll('.titlebar');
+	for (const tb of titlebars) {
+		const title_span = tb.querySelector('.title');
+		const data_attr = title_span?.dataset.pixelTitle;
+		const text = data_attr || title_span?.textContent;
+		if (!text)
+			continue;
+
+		const is_active = tb.classList.contains('active');
+		const color = is_active ? '#ffffff' : '#c0c0c0';
+		const canvas = create_pixel_canvas(text, 'sserife', 10, color, true, 1);
+		canvas.style.display = 'inline-block';
+		canvas.style.verticalAlign = 'middle';
+
+		if (title_span) {
+			title_span.textContent = '';
+			title_span.appendChild(canvas);
+		} else {
+			tb.appendChild(canvas);
+		}
+	}
+
+	// desktop icon labels
+	const icons = document.querySelectorAll('.desktop-icon span');
+	for (const span of icons) {
+		const text = span.textContent;
+		const canvas = create_pixel_canvas(text, 'sserife', 10, '#ffffff', false, 1);
+		canvas.style.display = 'block';
+		span.textContent = '';
+		span.appendChild(canvas);
+	}
+
+	// taskbar button labels
+	const taskbar_labels = document.querySelectorAll('.taskbar-btn span');
+	for (const span of taskbar_labels) {
+		const text = span.textContent;
+		const canvas = create_pixel_canvas(text, 'sserife', 8, '#000000', true, 1);
+		canvas.style.display = 'inline-block';
+		canvas.style.verticalAlign = 'middle';
+		span.textContent = '';
+		span.appendChild(canvas);
+	}
+
+	// all UI buttons and nav links
+	const ui_buttons = document.querySelectorAll('.btn-skew, .post-nav a');
+	for (const btn of ui_buttons) {
+		const text = btn.textContent.trim();
+		if (!text)
+			continue;
+
+		const canvas = create_pixel_canvas(text, 'sserife', 10, '#000000', true, 1);
+		canvas.style.display = 'inline-block';
+		canvas.style.verticalAlign = 'middle';
+		btn.textContent = '';
+		btn.appendChild(canvas);
+	}
+
+	// content headings
+	const headings = document.querySelectorAll('#window-body h1, #window-body h2');
+	for (const heading of headings) {
+		const text = heading.textContent;
+		const is_h1 = heading.tagName === 'H1';
+		const size = is_h1 ? 14 : 10;
+		const scale = is_h1 ? 3 : 2.5;
+		const canvas = create_pixel_canvas(text, 'sserife', size, '#000000', true, scale);
+		canvas.style.marginBottom = is_h1 ? '10px' : '5px';
+
+		heading.classList.add('pixel-heading-sr');
+		heading.parentNode.insertBefore(canvas, heading);
+	}
+
+	// taskbar clock
+	const clock_el = document.getElementById('taskbar-clock');
+	if (clock_el) {
+		function update_clock() {
+			const now = new Date();
+			let hours = now.getHours();
+			const minutes = now.getMinutes().toString().padStart(2, '0');
+			const ampm = hours >= 12 ? 'PM' : 'AM';
+			hours = hours % 12 || 12;
+			const time_str = hours + ':' + minutes + ' ' + ampm;
+
+			clock_el.textContent = '';
+			const canvas = document.createElement('canvas');
+			canvas.className = 'pixel-heading-canvas';
+			render_pixel_text(canvas, time_str, 'sserife', 10, '#000000', false);
+			canvas.style.width = canvas.width + 'px';
+			canvas.style.height = canvas.height + 'px';
+			clock_el.appendChild(canvas);
+		}
+
+		update_clock();
+		setInterval(update_clock, 30000);
+	}
 });
 
-nav_overlay.addEventListener('click', close_nav);
+// avatar window dragging
+(function() {
+	const avatar_window = document.getElementById('avatar-window');
+	if (!avatar_window)
+		return;
 
+	const titlebar = avatar_window.querySelector('.titlebar');
+	if (!titlebar)
+		return;
+
+	let is_dragging = false;
+	let drag_offset_x = 0;
+	let drag_offset_y = 0;
+
+	titlebar.addEventListener('pointerdown', function(e) {
+		is_dragging = true;
+
+		// offset between pointer and avatar's current CSS position
+		const parent_rect = avatar_window.offsetParent.getBoundingClientRect();
+		drag_offset_x = e.clientX - (avatar_window.offsetLeft + parent_rect.left);
+		drag_offset_y = e.clientY - (avatar_window.offsetTop + parent_rect.top);
+
+		titlebar.setPointerCapture(e.pointerId);
+		e.preventDefault();
+	});
+
+	document.addEventListener('pointermove', function(e) {
+		if (!is_dragging)
+			return;
+
+		const parent_rect = avatar_window.offsetParent.getBoundingClientRect();
+		avatar_window.style.left = (e.clientX - parent_rect.left - drag_offset_x) + 'px';
+		avatar_window.style.top = (e.clientY - parent_rect.top - drag_offset_y) + 'px';
+	});
+
+	document.addEventListener('pointerup', function() {
+		is_dragging = false;
+	});
+})();
+
+// image popout
 const image_popout_overlay = document.getElementById('image-popout-overlay');
 const image_popout_close = document.getElementById('image-popout-close');
 const image_popout_img = document.querySelector('#image-popout-img-wrapper > img');
@@ -62,7 +325,7 @@ document.addEventListener('keydown', function(e) {
 		close_image_popout();
 });
 
-// Pending thumbnail polling
+// pending thumbnail polling
 (function() {
 	const pending_images = document.querySelectorAll('[data-pending-thumb]');
 	if (pending_images.length === 0)
@@ -89,7 +352,6 @@ document.addEventListener('keydown', function(e) {
 					if (!el)
 						continue;
 
-					// create and insert image
 					const img = document.createElement('img');
 					img.src = src;
 					img.onload = function() {
@@ -99,7 +361,6 @@ document.addEventListener('keydown', function(e) {
 						el.style.height = '';
 						el.style.aspectRatio = '';
 
-						// enable popout if applicable
 						const full_src = el.dataset.thumbFullSrc;
 						if (full_src && el.classList.contains('image-popout'))
 							el.dataset.fullSrc = full_src;
@@ -112,16 +373,14 @@ document.addEventListener('keydown', function(e) {
 					setTimeout(poll_thumbs, 1000);
 			})
 			.catch(() => {
-				// retry on error
 				setTimeout(poll_thumbs, 1000);
 			});
 	}
 
-	// start polling
 	setTimeout(poll_thumbs, 500);
 })();
 
-// Contact form handling
+// contact form handling
 (function() {
 	const form = document.getElementById('contact-form');
 	if (!form)
@@ -192,7 +451,6 @@ document.addEventListener('keydown', function(e) {
 		return valid;
 	}
 
-	// Clear errors on input
 	for (const field of Object.values(fields)) {
 		field.el.addEventListener('input', () => clear_error(field));
 	}
@@ -231,9 +489,8 @@ document.addEventListener('keydown', function(e) {
 				status_el.textContent = data.error || 'Something went wrong. Please try again.';
 				status_el.className = 'error';
 
-				if (data.field && fields[data.field]) {
+				if (data.field && fields[data.field])
 					show_error(fields[data.field], data.error);
-				}
 			}
 		} catch (err) {
 			status_el.textContent = 'Failed to send message, did you already send one?';
@@ -245,7 +502,7 @@ document.addEventListener('keydown', function(e) {
 	});
 })();
 
-// Comment form handling
+// comment form handling
 (function() {
 	const form = document.getElementById('comment-form');
 	if (!form)
@@ -326,17 +583,14 @@ document.addEventListener('keydown', function(e) {
 		return valid;
 	}
 
-	// Clear errors on input
 	for (const field of Object.values(fields)) {
 		field.el.addEventListener('input', () => clear_error(field));
 	}
 
-	// Check for success message from redirect
 	const params = new URLSearchParams(window.location.search);
 	if (params.get('comment_posted') === '1') {
 		status_el.textContent = 'Your comment has been posted!';
 		status_el.className = 'success';
-		// clean up URL
 		history.replaceState(null, '', window.location.pathname);
 	}
 
@@ -368,12 +622,10 @@ document.addEventListener('keydown', function(e) {
 
 			if (res.ok) {
 				if (data.verified) {
-					// comment posted directly, reload to show it
 					status_el.textContent = 'Comment posted!';
 					status_el.className = 'success';
 					setTimeout(() => window.location.reload(), 1000);
 				} else {
-					// verification email sent
 					status_el.textContent = data.message || 'Check your email to verify and post your comment.';
 					status_el.className = 'success';
 					form.reset();
@@ -382,9 +634,8 @@ document.addEventListener('keydown', function(e) {
 				status_el.textContent = data.error || 'Something went wrong. Please try again.';
 				status_el.className = 'error';
 
-				if (data.field && fields[data.field]) {
+				if (data.field && fields[data.field])
 					show_error(fields[data.field], data.error);
-				}
 			}
 		} catch (err) {
 			status_el.textContent = 'Failed to post comment. Please try again.';
@@ -396,7 +647,7 @@ document.addEventListener('keydown', function(e) {
 	});
 })();
 
-// Subscribe form handling
+// subscribe form handling
 (function() {
 	const form = document.getElementById('subscribe-form');
 	if (!form)
@@ -408,7 +659,6 @@ document.addEventListener('keydown', function(e) {
 	const status_el = document.getElementById('subscribe-status');
 	const error_el = document.getElementById('subscribe-email-error');
 
-	// Toggle email form visibility
 	if (email_btn) {
 		email_btn.addEventListener('click', function() {
 			form.classList.toggle('open');
@@ -488,7 +738,6 @@ document.addEventListener('keydown', function(e) {
 		}
 	});
 
-	// Check for success message from redirect
 	const params = new URLSearchParams(window.location.search);
 	if (params.get('subscribed') === '1') {
 		form.classList.add('open');
@@ -498,13 +747,12 @@ document.addEventListener('keydown', function(e) {
 	}
 })();
 
-// Like button handling
+// like button handling
 (function() {
 	const like_buttons = document.querySelectorAll('.like-button');
 	if (like_buttons.length === 0)
 		return;
 
-	// get or create visitor ID (stored in localStorage)
 	function get_visitor_id() {
 		let id = localStorage.getItem('visitor_id');
 		if (!id) {
@@ -516,7 +764,6 @@ document.addEventListener('keydown', function(e) {
 		return id;
 	}
 
-	// get liked posts from localStorage
 	function get_liked_posts() {
 		try {
 			return JSON.parse(localStorage.getItem('liked_posts') || '[]');
@@ -531,16 +778,14 @@ document.addEventListener('keydown', function(e) {
 
 	const visitor_id = get_visitor_id();
 	const liked_posts = get_liked_posts();
-	const pending_requests = new Map(); // post_slug -> timeout ID
+	const pending_requests = new Map();
 
-	// initialize button states from localStorage
 	like_buttons.forEach(btn => {
 		const post_slug = btn.dataset.postSlug;
 		if (liked_posts.includes(post_slug))
 			btn.classList.add('liked');
 	});
 
-	// send the actual API request
 	async function send_like_request(post_slug, desired_state) {
 		try {
 			const res = await fetch('/api/likes/toggle', {
@@ -552,7 +797,6 @@ document.addEventListener('keydown', function(e) {
 			const data = await res.json();
 
 			if (res.ok) {
-				// update all buttons for this post with server count
 				like_buttons.forEach(btn => {
 					if (btn.dataset.postSlug === post_slug) {
 						const count_el = btn.querySelector('.like-count');
@@ -566,15 +810,11 @@ document.addEventListener('keydown', function(e) {
 		}
 	}
 
-	// handle clicks
 	like_buttons.forEach(btn => {
 		btn.addEventListener('click', function() {
 			const post_slug = btn.dataset.postSlug;
-
-			// toggle visual state immediately
 			const is_now_liked = !btn.classList.contains('liked');
 
-			// update all buttons for this post
 			like_buttons.forEach(b => {
 				if (b.dataset.postSlug === post_slug) {
 					if (is_now_liked)
@@ -582,7 +822,6 @@ document.addEventListener('keydown', function(e) {
 					else
 						b.classList.remove('liked');
 
-					// optimistically update count
 					const count_el = b.querySelector('.like-count');
 					if (count_el) {
 						const current = parseInt(count_el.textContent) || 0;
@@ -591,7 +830,6 @@ document.addEventListener('keydown', function(e) {
 				}
 			});
 
-			// update localStorage
 			if (is_now_liked) {
 				if (!liked_posts.includes(post_slug)) {
 					liked_posts.push(post_slug);
@@ -605,7 +843,6 @@ document.addEventListener('keydown', function(e) {
 				}
 			}
 
-			// debounce the API call
 			if (pending_requests.has(post_slug))
 				clearTimeout(pending_requests.get(post_slug));
 
@@ -619,9 +856,9 @@ document.addEventListener('keydown', function(e) {
 	});
 })();
 
-// Randomize doodle jitter animation phase
+// randomize doodle jitter animation phase
 document.addEventListener('DOMContentLoaded', function() {
 	document.querySelectorAll('.doodle').forEach(el => {
-		el.style.animationDelay = `-${Math.random() * 0.6}s`;
+		el.style.animationDelay = '-' + (Math.random() * 0.6) + 's';
 	});
 });
