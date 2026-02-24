@@ -200,8 +200,13 @@ h1 {
 	font-weight: bold;
 }
 
-#window-body > h1:first-child,
-#window-body > .pixel-heading-canvas:first-child {
+#window-body h1,
+#window-body h2 {
+	opacity: 0;
+}
+
+#window-body > h1:first-of-type,
+#window-body > .pixel-heading-canvas:first-of-type {
 	margin-left: 200px;
 }
 
@@ -952,6 +957,12 @@ a.view-post-link:hover {
 	display: block;
 	image-rendering: pixelated;
 	max-width: 100%;
+	animation: pixel-fade-in 0.3s ease-in;
+}
+
+@keyframes pixel-fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
 }
 
 /* Visually hidden but accessible heading text */
@@ -991,8 +1002,8 @@ a.view-post-link:hover {
 		left: 20px;
 	}
 
-	#window-body > h1:first-child,
-	#window-body > .pixel-heading-canvas:first-child {
+	#window-body > h1:first-of-type,
+	#window-body > .pixel-heading-canvas:first-of-type {
 		margin-left: 130px;
 		max-width: calc(100% - 130px);
 	}
