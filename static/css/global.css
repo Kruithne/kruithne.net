@@ -153,6 +153,12 @@ p a:hover, section a:not(.post-list a):not(.desktop-icon):not(.taskbar-btn):hove
 	display: flex;
 	gap: 30px;
 	z-index: 10;
+	opacity: 0;
+	transition: opacity 200ms ease;
+}
+
+#desktop-icons.visible {
+	opacity: 1;
 }
 
 .desktop-icon {
@@ -1019,6 +1025,11 @@ a.view-post-link:hover {
 		right: auto;
 		transform: translateX(-50%);
 		gap: 15px;
+	}
+
+	.desktop-icon .icon-img {
+		width: 40px;
+		height: 40px;
 	}
 
 	h1 {

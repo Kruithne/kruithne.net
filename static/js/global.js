@@ -183,6 +183,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 		span.appendChild(canvas);
 	}
 
+	document.getElementById('desktop-icons')?.classList.add('visible');
+
 	// taskbar button labels
 	const taskbar_labels = document.querySelectorAll('.taskbar-btn span');
 	for (const span of taskbar_labels) {
