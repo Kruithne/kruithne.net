@@ -214,6 +214,7 @@ h1 {
 #window-body > h1:first-of-type,
 #window-body > .pixel-heading-canvas:first-of-type {
 	margin-left: 200px;
+	max-width: calc(100% - 200px);
 }
 
 h2 {
