@@ -1,0 +1,56 @@
+<template id="post-meta">
+	<meta name="description" content="Implementing development tools using ImGui to my handmade game engine">
+	<meta name="image" content="static/images/posts/embeds/007_imgui.webp">
+</template>
+<h1>Development Tools</h1>
+<time datetime="2026-02-25">25th February 2026</time>
+<section>
+	<p>In my last post, <a href="https://www.kruithne.net/posts/2026-02-19-sticking-to-the-script">Sticking to the Script</a>, I went over my progress of building a custom user interface. It made logical sense from here to start building out some development tools using it. So I did.</p>
+
+	{{image=static/images/posts/images/007_crap.png}}
+
+	<p>Here you can see a handful of tools for monitoring frame timings and memory regions, and it's fine for this, but as I started to draft more tools, I needed more things. Text inputs, check boxes, sliders, draggable windows, collapseable sections and so on.</p>
+
+	<p>Let's build all that then! Well. Let's not. I'm a big advocate for writing things yourself instead of reaching for third party libraries. I've spent long enough working professionally on codebases in the Node ecosystem that I've built a strong aversion to it.</p>
+
+	<img src="https://media1.tenor.com/m/pOmumWx6CIcAAAAC/gordon-ramsay-i-dont-like-it.gif" class="embed-gif">
+
+	<p>But, despite that, I also know when it just makes sense. I could burn a load of time crafting out the most feature rich interface for my development/debugging tools, or I could just do what <b>every</b> other game engine does and use <a href="https://github.com/ocornut/imgui">Dear ImGui</a>.</p>
+
+	<p>If you're not familiar, Dear ImGui is an immediate-mode graphics user interface library. It's super easy to integrate into any language/engine, and it makes whipping up debugging tools an absolute breeze. It's widely used in game engines for this very reason.</p>
+
+	<div class="image-grid">
+		{{thumb=static/images/posts/images/007_portal.png?width=530&popout&title=Portal RTX}}
+		{{thumb=static/images/posts/images/007_teardown.png?width=530&popout&title=Teardown}}
+		{{thumb=static/images/posts/images/007_siege.png?width=530&popout&title=Rainbow Six Siege}}
+		{{thumb=static/images/posts/images/007_alanwake2.png?width=530&popout&title=Alan Wake 2}}
+	</div>
+	<cite>Image credit: Ubisoft, Remedy, Tuxedo Labs, Valve</cite>
+
+	<p>Getting ImGui into the engine was so straight-forward and boring that it doesn't even warrant an in-depth explanation. I simply compiled it and wrote a quick bindings to go from C++ to C, and that was it.</p>
+
+	{{image=static/images/posts/images/007_imgui.png}}
+
+	<h2>Let's Get Down To Business</h2>
+
+	<p>Okay, so now what? The first thing on my list which I used as a litmus test to see if I actually wanted to stick with Dear ImGui was to port over the profiling tools I'd just written from my own game interface code.</p>
+
+	{{image=static/images/posts/images/007_profilers.png}}
+
+	<p>That was far too easy. Not only did I port over my memory profiler, frame profiler and frame time monitors, but it was easy to make them <i>a lot</i> better as well.</p>
+
+	<p>For this next tool, you might have already spotted it in my <a href="https://www.kruithne.net/posts/2026-02-12-spreadsheets-in-a-trenchcoat">Spreadsheets in a Trenchcoat</a> post last week. Data tables are essentially the spreadsheets of my engine, and being able to edit them in-engine is super useful.</p>
+
+	{{image=static/images/posts/images/007_data_table.png}}
+
+	<h2>Closing Notes</h2>
+
+	<p>That's it for this post. Not a very long one this time (you're welcome or sorry, depending on your preference). I was originally going to include this in the previous devlog post, but it was already droning on a bit.</p>
+
+	{{image=static/images/posts/images/007_final.png}}
+
+	<p>Adding Dear ImGui to the engine has not only sped up development time as I'm not wasting it building out widgets only I'll fondle, but it's also allowed me to prototype faster. Also, it just feels like I'm one of the cool kids now, right?</p>
+</section>
+{{post_nav}}
+{{likes}}
+{{comments}}
