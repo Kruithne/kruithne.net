@@ -505,6 +505,14 @@ code {
 	background: url('/{{cache_bust=static/images/icons/icon_discord.webp}}') no-repeat center / contain;
 }
 
+.icon-tiktok {
+	background: url('/{{cache_bust=static/images/icons/icon_tiktok.webp}}') no-repeat center / contain;
+}
+
+.icon-instagram {
+	background: url('/{{cache_bust=static/images/icons/icon_instagram.webp}}') no-repeat center / contain;
+}
+
 /* Contact Form */
 #contact-form {
 	display: flex;
