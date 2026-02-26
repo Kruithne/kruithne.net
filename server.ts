@@ -371,11 +371,11 @@ function trigger_new_post(post: PostMeta): void {
 	// );
 
 	trigger_discord(post).catch(err =>
-		spooder.caution(`discord trigger failed for ${post.slug}`, { err })
+		spooder.caution(`discord trigger failed for ${post.slug}`, err)
 	);
 
 	trigger_mail_subscribers(post).catch(err =>
-		spooder.caution(`mail trigger failed for ${post.slug}`, { err })
+		spooder.caution(`mail trigger failed for ${post.slug}`, err)
 	);
 }
 // endregion
@@ -859,7 +859,7 @@ async function process_mailing_list_queue(): Promise<void> {
 		await send_mailing_list_email(item.to, item.token, item.post);
 		spooder.log(`[mail] sent notification to ${item.to} for ${item.post.title}`);
 	} catch (err) {
-		spooder.caution(`[mail] failed to send to ${item.to}`, { err });
+		spooder.caution(`[mail] failed to send to ${item.to}`, err);
 	}
 
 	// schedule next email after interval
