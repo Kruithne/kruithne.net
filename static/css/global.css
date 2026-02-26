@@ -471,6 +471,7 @@ code {
 .taskbar-icon {
 	width: 16px;
 	height: 16px;
+	background: no-repeat center / contain;
 }
 
 #start-btn {
@@ -478,43 +479,43 @@ code {
 }
 
 .icon-start {
-	background: url('/{{cache_bust=static/favicon-96x96.png}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/favicon-96x96.png}}');
 }
 
 .icon-steam {
-	background: url('/{{cache_bust=static/images/icons/icon_steam.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_steam.webp}}');
 }
 
 .icon-youtube {
-	background: url('/{{cache_bust=static/images/icons/icon_youtube.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_youtube.webp}}');
 }
 
 .icon-x {
-	background: url('/{{cache_bust=static/images/icons/icon_x.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_x.webp}}');
 }
 
 .icon-patreon {
-	background: url('/{{cache_bust=static/images/icons/icon_patreon.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_patreon.webp}}');
 }
 
 .icon-github {
-	background: url('/{{cache_bust=static/images/icons/icon_github.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_github.webp}}');
 }
 
 .icon-discord {
-	background: url('/{{cache_bust=static/images/icons/icon_discord.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_discord.webp}}');
 }
 
 .icon-tiktok {
-	background: url('/{{cache_bust=static/images/icons/icon_tiktok.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_tiktok.webp}}');
 }
 
 .icon-instagram {
-	background: url('/{{cache_bust=static/images/icons/icon_instagram.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_instagram.webp}}');
 }
 
 .icon-bsky {
-	background: url('/{{cache_bust=static/images/icons/icon_bsky.webp}}') no-repeat center / contain;
+	background-image: url('/{{cache_bust=static/images/icons/icon_bsky.webp}}');
 }
 
 /* Contact Form */
