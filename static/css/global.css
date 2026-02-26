@@ -513,6 +513,10 @@ code {
 	background: url('/{{cache_bust=static/images/icons/icon_instagram.webp}}') no-repeat center / contain;
 }
 
+.icon-bsky {
+	background: url('/{{cache_bust=static/images/icons/icon_bsky.webp}}') no-repeat center / contain;
+}
+
 /* Contact Form */
 #contact-form {
 	display: flex;
