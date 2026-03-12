@@ -14,6 +14,17 @@ const execAsync = promisify(exec);
 
 // mailing list configuration (used in trigger and queue)
 const MAILING_LIST_SMTP_URI = process.env.MAILING_LIST_SMTP_URI;
+const MAILING_LIST_FROM = 'kruithne.net <mailinglist@kruithne.net>';
+const MAILING_LIST_INTERVAL = 60 * 1000; // 1 minute between emails
+
+type MailingListQueueItem = {
+	to: string;
+	token: string;
+	post: PostMeta;
+};
+
+const mailing_list_queue: MailingListQueueItem[] = [];
+let mailing_list_processing = false;
 
 // region constants
 const PAGE_DIR = './html/pages';
@@ -827,17 +838,6 @@ async function send_templated_email(template_id: string, to: string, replacement
 }
 
 // region mailing list
-const MAILING_LIST_FROM = 'kruithne.net <mailinglist@kruithne.net>';
-const MAILING_LIST_INTERVAL = 60 * 1000; // 1 minute between emails
-
-type MailingListQueueItem = {
-	to: string;
-	token: string;
-	post: PostMeta;
-};
-
-const mailing_list_queue: MailingListQueueItem[] = [];
-let mailing_list_processing = false;
 
 function generate_subscription_token(): string {
 	return crypto.randomBytes(4).toString('hex'); // 8 hex chars
