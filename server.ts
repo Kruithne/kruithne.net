@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import v8 from 'node:v8';
 import { smtp_send } from './smtp';
 import { bluesky_post } from './bluesky';
 import { twitter_post } from './twitter';
@@ -1412,6 +1413,26 @@ server.route('/api/unsubscribe', async (req, url) => {
 // region klargon
 server.route('/klargon', () => Bun.file('./klargon/index.html'));
 server.dir('/klargon/static', './klargon/static');
+// endregion
+
+// region debug
+server.route('/debug/heap', async (req, url) => {
+	const key = url.searchParams.get('key');
+	if (!key || key !== process.env.DEBUG_HEAP_KEY)
+		return new Response('Unauthorized', { status: 401 });
+
+	await fs.mkdir('./debug', { recursive: true });
+
+	const snapshot_path = './debug/heap.heapsnapshot';
+	v8.writeHeapSnapshot(snapshot_path);
+
+	return new Response(Bun.file(snapshot_path), {
+		headers: {
+			'Content-Type': 'application/octet-stream',
+			'Content-Disposition': 'attachment; filename="heap.heapsnapshot"'
+		}
+	});
+});
 // endregion
 
 // region webhooks
