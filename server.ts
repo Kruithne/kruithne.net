@@ -1433,6 +1433,38 @@ server.route('/debug/heap', async (req, url) => {
 		}
 	});
 });
+
+server.route('/debug/memory', async (req, url) => {
+	const key = url.searchParams.get('key');
+	if (!key || key !== process.env.DEBUG_HEAP_KEY)
+		return new Response('Unauthorized', { status: 401 });
+
+	const { cache_worker_get_memory } = await import('./wow.export/module');
+
+	const fmt = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
+
+	const main = process.memoryUsage();
+	const worker = await cache_worker_get_memory();
+
+	const report = {
+		main: {
+			rss: fmt(main.rss),
+			heapTotal: fmt(main.heapTotal),
+			heapUsed: fmt(main.heapUsed),
+			external: fmt(main.external),
+			arrayBuffers: fmt(main.arrayBuffers),
+		},
+		cache_worker: {
+			rss: fmt(worker.rss),
+			heapTotal: fmt(worker.heapTotal),
+			heapUsed: fmt(worker.heapUsed),
+			external: fmt(worker.external),
+			arrayBuffers: fmt(worker.arrayBuffers),
+		}
+	};
+
+	return Response.json(report);
+});
 // endregion
 
 // region webhooks
