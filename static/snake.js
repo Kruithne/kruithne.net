@@ -1,3 +1,5 @@
+const PAPER = '#f7f1eb';
+const INK = '#261c13';
 (function() {
 	const wrapper = document.createElement('div');
 	wrapper.id = 'snake-wrapper';
@@ -39,19 +41,19 @@
 	}
 
 	function draw_start() {
-		ctx.fillStyle = '#111';
+		ctx.fillStyle = PAPER;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.fillStyle = '#fff';
-		ctx.font = '24px monospace';
+		ctx.fillStyle = INK;
+		ctx.font = '24px "Google Sans Code", monospace';
 		ctx.textAlign = 'center';
 		ctx.fillText('PLAY', canvas.width / 2, canvas.height / 2 + 8);
 	}
 
 	function draw_game_over() {
-		ctx.fillStyle = '#111';
+		ctx.fillStyle = PAPER;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.fillStyle = '#fff';
-		ctx.font = '24px monospace';
+		ctx.fillStyle = INK;
+		ctx.font = '24px "Google Sans Code", monospace';
 		ctx.textAlign = 'center';
 		ctx.fillText('GAME OVER: ' + score, canvas.width / 2, canvas.height / 2 + 8);
 	}
@@ -65,7 +67,7 @@
 		const cx = x * grid_size + grid_size / 2;
 		const cy = y * grid_size + grid_size / 2;
 		const size = 4;
-		ctx.strokeStyle = '#fff';
+		ctx.strokeStyle = INK;
 		ctx.lineWidth = 2;
 		ctx.beginPath();
 		ctx.moveTo(cx - size, cy - size);
@@ -76,15 +78,15 @@
 	}
 
 	function draw() {
-		ctx.fillStyle = '#111';
+		ctx.fillStyle = PAPER;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-		ctx.fillStyle = '#fff';
-		ctx.font = '12px monospace';
+		ctx.fillStyle = INK;
+		ctx.font = '12px "Google Sans Code", monospace';
 		ctx.textAlign = 'left';
 		ctx.fillText('SCORE: ' + score, 5, 12);
 
-		ctx.fillStyle = '#fff';
+		ctx.fillStyle = INK;
 		snake.forEach(s => ctx.fillRect(s.x * grid_size + 1, s.y * grid_size + 1, grid_size - 2, grid_size - 2));
 
 		draw_cross(food.x, food.y);
