@@ -179,6 +179,33 @@ p a:hover, section a:not(.post-list a):not(.nav-item):not(.social-link):hover {
 	-webkit-text-stroke: 0.5px currentColor;
 }
 
+#site-header.header-home {
+	grid-template-columns: 1fr;
+}
+
+.header-home #avatar-tile,
+.header-home #site-title {
+	display: none;
+}
+
+.header-home #site-nav {
+	grid-column: 1;
+}
+
+.header-banner {
+	grid-column: 1 / -1;
+	margin-top: 26px;
+	border: 2px solid var(--ink);
+	padding: 3px;
+}
+
+.header-banner > img {
+	display: block;
+	width: 100%;
+	height: auto;
+	image-rendering: pixelated;
+}
+
 /* Body */
 #window-body {
 	flex: 1;
@@ -291,6 +318,21 @@ time {
 	display: block;
 	max-width: 100%;
 	height: auto;
+}
+
+.post-banner {
+	display: block;
+	width: 100%;
+	margin: 0 0 20px;
+	border: 2px solid var(--ink);
+	padding: 3px;
+}
+
+.post-banner > img {
+	display: block;
+	width: 100%;
+	height: auto;
+	image-rendering: pixelated;
 }
 
 .embed-gif {

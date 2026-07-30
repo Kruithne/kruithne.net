@@ -37,7 +37,7 @@
 			</div>
 		</div>
 		<div id="page-frame">
-			<header id="site-header">
+			<header id="site-header" class="{{ header_class }}">
 				<div id="avatar-tile">
 					<a href="/" id="main-avatar" aria-label="Home"></a>
 				</div>
@@ -64,6 +64,7 @@
 					</a>
 				</nav>
 				<a href="/" id="site-title">kruithne.net</a>
+				{{ header_banner }}
 			</header>
 			<main id="window-body">
 				{{ content }}

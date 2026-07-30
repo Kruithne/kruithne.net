@@ -32,6 +32,8 @@ const PAGE_DIR = './html/pages';
 const PAGE_DEFAULT_TITLE = 'kruithne.net';
 const PAGE_INDEX = '/index';
 
+const HOME_BANNER_IMAGE = 'static/social_embed_card.webp';
+
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_MAX_SIZE = 5 * 1024 * 1024; // 5 mb
 // endregion
@@ -419,6 +421,14 @@ function generate_post_list(): string {
 	return html;
 }
 
+function generate_home_banner(): string {
+	return `<div class="header-banner"><img src="/${spooder.cache_bust(HOME_BANNER_IMAGE)}" alt=""></div>`;
+}
+
+function inject_post_banner(content: string, image: string): string {
+	return content.replace(/<\/time>/i, `</time>\n<div class="post-banner"><img src="/${image}" alt=""></div>`);
+}
+
 function generate_post_nav(current_slug: string): string {
 	const index = devlog_posts.findIndex(p => p.slug === current_slug);
 	if (index === -1)
@@ -491,7 +501,7 @@ await (async () => {
 			// reset pending flag before parsing
 			request_has_pending_thumbs = false;
 
-			const content = await Bun.file(page_path).text();
+			let content = await Bun.file(page_path).text();
 			const h1_match = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
 			const page_title = h1_match?.[1] ?? PAGE_DEFAULT_TITLE;
 
@@ -506,6 +516,11 @@ await (async () => {
 				? `https://kruithne.net/${post_meta.image}`
 				: 'https://kruithne.net/static/social_embed_card.webp?v=2';
 
+			if (post_meta?.image)
+				content = inject_post_banner(content, post_meta.image);
+
+			const is_home_page = slug === '/';
+
 			const rendered = await spooder.parse_template(
 				await template_page(content),
 				{
@@ -513,6 +528,8 @@ await (async () => {
 					page_url,
 					page_description,
 					page_image,
+					header_class: is_home_page ? 'header-home' : '',
+					header_banner: is_home_page ? generate_home_banner : () => '',
 					post_list: generate_post_list,
 					post_nav: () => generate_post_nav(slug),
 					latest_post: generate_latest_post,
