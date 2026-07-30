@@ -31,7 +31,7 @@
 	--content-font: 'Google Sans Code', monospace;
 	--display-font: 'Terminal Grotesque', 'Google Sans Code', monospace;
 
-	--frame-inset: 20px;
+	--frame-inset: 110px;
 	--frame-pad: 46px;
 	--rule: 3px dotted var(--ink);
 }
@@ -49,6 +49,32 @@ body {
 	font-size: 17px;
 	-webkit-font-smoothing: antialiased;
 	padding: var(--frame-inset);
+	position: relative;
+}
+
+/* Blocky dither gradient bleeding in from the page edges, behind the frame */
+body::before,
+body::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 360px;
+	background-repeat: repeat-x;
+	background-size: 1080px 360px;
+	image-rendering: pixelated;
+	pointer-events: none;
+	z-index: 0;
+}
+
+body::before {
+	top: 0;
+	background-image: url('/{{cache_bust=static/images/dither_top.png}}');
+}
+
+body::after {
+	bottom: 0;
+	background-image: url('/{{cache_bust=static/images/dither_bottom.png}}');
 }
 
 ::selection {
@@ -74,13 +100,16 @@ p a:hover, section a:not(.post-list a):not(.nav-item):not(.social-link):hover {
 
 /* Page frame */
 #page-frame {
+	position: relative;
 	max-width: 1080px;
 	margin: 0 auto;
 	padding: var(--frame-pad);
 	border: 3px dotted var(--ink);
+	background: var(--paper);
 	min-height: calc(100vh - var(--frame-inset) * 2);
 	display: flex;
 	flex-direction: column;
+	z-index: 1;
 }
 
 /* Header */
@@ -826,8 +855,14 @@ a.view-post-link:hover {
 /* Responsive */
 @media (max-width: 900px) {
 	:root {
-		--frame-inset: 10px;
+		--frame-inset: 44px;
 		--frame-pad: 22px;
+	}
+
+	body::before,
+	body::after {
+		height: 240px;
+		background-size: 720px 240px;
 	}
 
 	body {
