@@ -504,7 +504,7 @@ await (async () => {
 			const page_description = post_meta?.description ?? '';
 			const page_image = post_meta?.image
 				? `https://kruithne.net/${post_meta.image}`
-				: 'https://kruithne.net/static/social_embed_card.webp';
+				: 'https://kruithne.net/static/social_embed_card.webp?v=2';
 
 			const rendered = await spooder.parse_template(
 				await template_page(content),
