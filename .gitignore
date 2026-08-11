@@ -6,3 +6,8 @@ bun.lock
 
 # .env.local file
 .env.local
+
+# migration artifact (wow.export/archavon_migrate.ts)
+archavon.sqlite
+archavon.sqlite-wal
+archavon.sqlite-shm
