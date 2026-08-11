@@ -2,8 +2,7 @@
 	"name": "kruithne.net",
 	"module": "server.ts",
 	"devDependencies": {
-		"@types/bun": "^1.2.15",
-		"mysql2": "^3.23.3"
+		"@types/bun": "^1.2.15"
 	},
 	"spooder": {
 		"auto_restart": {
