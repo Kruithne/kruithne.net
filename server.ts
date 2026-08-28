@@ -9,6 +9,7 @@ import { smtp_send } from './smtp';
 import { bluesky_post } from './bluesky';
 import { twitter_post } from './twitter';
 import { discord_post } from './discord';
+import { init_gifs } from './gifs';
 import { db } from './db';
 
 const execAsync = promisify(exec);
@@ -87,6 +88,8 @@ if (process.env.SPOODER_ENV !== 'dev') {
 	const { init: init_wow_export } = await import('./wow.export/module');
 	await init_wow_export(server);
 }
+
+init_gifs(server);
 
 type ThumbResult = {
 	thumb_src: string | null;
