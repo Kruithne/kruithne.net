@@ -57,7 +57,7 @@ async function process_thumb_queue() {
 			await fs.mkdir(thumb_dir, { recursive: true });
 			await execAsync(job.cmd);
 		} catch (err) {
-			spooder.caution(`failed to generate thumbnail`, { key, err });
+			spooder.caution('failed to generate thumbnail', err, { key });
 		} finally {
 			thumb_processing.delete(key);
 		}
@@ -782,7 +782,7 @@ server.json('/api/contact', async (req, url, json) => {
 		subject: `[Contact Form] ${subject}`,
 		text: '',
 		html: html_content
-	}).catch(err => spooder.caution('failed to send contact form', { err }));
+	}).catch(err => spooder.caution('failed to send contact form', err, { code: err?.code }));
 
 	return { success: true };
 });
@@ -855,7 +855,7 @@ async function send_templated_email(template_id: string, to: string, replacement
 		subject: template.subject,
 		text,
 		html
-	}).catch(err => spooder.caution('failed to send templated email', { err, template_id, to }));
+	}).catch(err => spooder.caution('failed to send templated email', err, { code: err?.code, template_id, to }));
 }
 
 // region mailing list
@@ -1004,7 +1004,7 @@ async function notify_comment_posted(post_slug: string, display_name: string, em
 		subject: `[Comment] New comment on ${post_slug}`,
 		text: '',
 		html: html_content
-	}).catch(err => spooder.caution('failed to send comment notification', { err }));
+	}).catch(err => spooder.caution('failed to send comment notification', err, { code: err?.code }));
 }
 
 type CommentFormData = {
