@@ -91,6 +91,144 @@ document.addEventListener('keydown', function(e) {
 	setTimeout(poll_thumbs, 500);
 })();
 
+// audio players
+(function() {
+	const players = document.querySelectorAll('.audio-player');
+	if (players.length === 0)
+		return;
+
+	const SEEK_STEP = 5;
+	const VOLUME_STEP = 0.1;
+
+	const audio_elements = [];
+
+	function format_time(seconds) {
+		if (!isFinite(seconds))
+			return '0:00';
+
+		const total = Math.floor(seconds);
+		return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+	}
+
+	function bind_bar(bar, on_change) {
+		function update_from_pointer(e) {
+			const rect = bar.getBoundingClientRect();
+			on_change(Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)));
+		}
+
+		bar.addEventListener('pointerdown', function(e) {
+			bar.setPointerCapture(e.pointerId);
+			update_from_pointer(e);
+		});
+
+		bar.addEventListener('pointermove', function(e) {
+			if (bar.hasPointerCapture(e.pointerId))
+				update_from_pointer(e);
+		});
+	}
+
+	players.forEach(player => {
+		const audio = player.querySelector('audio');
+		const play_btn = player.querySelector('.audio-play');
+		const mute_btn = player.querySelector('.audio-mute');
+		const seek_bar = player.querySelector('.audio-seek');
+		const seek_fill = seek_bar.querySelector('.audio-bar-fill');
+		const volume_bar = player.querySelector('.audio-volume');
+		const volume_fill = volume_bar.querySelector('.audio-bar-fill');
+		const time_el = player.querySelector('.audio-time');
+
+		audio_elements.push(audio);
+
+		function update_time() {
+			const progress = audio.duration ? audio.currentTime / audio.duration : 0;
+			seek_fill.style.width = (progress * 100) + '%';
+			seek_bar.setAttribute('aria-valuenow', Math.round(progress * 100));
+			time_el.textContent = format_time(audio.currentTime) + ' / ' + format_time(audio.duration);
+		}
+
+		function update_volume() {
+			const volume = audio.muted ? 0 : audio.volume;
+			volume_fill.style.width = (volume * 100) + '%';
+			volume_bar.setAttribute('aria-valuenow', Math.round(volume * 100));
+			mute_btn.classList.toggle('muted', audio.muted || audio.volume === 0);
+			mute_btn.setAttribute('aria-label', audio.muted ? 'Unmute' : 'Mute');
+		}
+
+		function seek_to(fraction) {
+			if (audio.duration)
+				audio.currentTime = fraction * audio.duration;
+		}
+
+		function set_volume(volume) {
+			audio.volume = Math.min(1, Math.max(0, volume));
+			audio.muted = false;
+		}
+
+		play_btn.addEventListener('click', function() {
+			if (audio.paused)
+				audio.play();
+			else
+				audio.pause();
+		});
+
+		mute_btn.addEventListener('click', function() {
+			if (audio.volume === 0) {
+				set_volume(1);
+				return;
+			}
+
+			audio.muted = !audio.muted;
+		});
+
+		bind_bar(seek_bar, seek_to);
+		bind_bar(volume_bar, set_volume);
+
+		seek_bar.addEventListener('keydown', function(e) {
+			if (e.key === 'ArrowRight')
+				audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + SEEK_STEP);
+			else if (e.key === 'ArrowLeft')
+				audio.currentTime = Math.max(0, audio.currentTime - SEEK_STEP);
+			else
+				return;
+
+			e.preventDefault();
+		});
+
+		volume_bar.addEventListener('keydown', function(e) {
+			if (e.key === 'ArrowRight' || e.key === 'ArrowUp')
+				set_volume(audio.volume + VOLUME_STEP);
+			else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown')
+				set_volume(audio.volume - VOLUME_STEP);
+			else
+				return;
+
+			e.preventDefault();
+		});
+
+		audio.addEventListener('play', function() {
+			for (const other of audio_elements) {
+				if (other !== audio)
+					other.pause();
+			}
+
+			play_btn.classList.add('playing');
+			play_btn.setAttribute('aria-label', 'Pause');
+		});
+
+		audio.addEventListener('pause', function() {
+			play_btn.classList.remove('playing');
+			play_btn.setAttribute('aria-label', 'Play');
+		});
+
+		audio.addEventListener('timeupdate', update_time);
+		audio.addEventListener('durationchange', update_time);
+		audio.addEventListener('loadedmetadata', update_time);
+		audio.addEventListener('volumechange', update_volume);
+
+		update_time();
+	});
+})();
+
 // contact form handling
 (function() {
 	const form = document.getElementById('contact-form');

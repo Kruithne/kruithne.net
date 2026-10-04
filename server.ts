@@ -170,6 +170,24 @@ const global_sub_table = {
 	cache_bust: spooder.cache_bust,
 	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
 	video: (vid_path: string) => `<div class="image"><video src="/${spooder.cache_bust(vid_path)}" autoplay loop muted playsinline></video></div>`,
+	audio: (input: string) => {
+		// "static/sound/track.wav?title=Some Track"
+		const [audio_path, query_string] = input.split('?');
+		const params = new URLSearchParams(query_string);
+		const title = params.get('title') ?? path.basename(audio_path, path.extname(audio_path));
+
+		return `<div class="audio-player">
+			<div class="audio-title">${escape_html(title)}</div>
+			<div class="audio-controls">
+				<button class="audio-play" aria-label="Play"></button>
+				<div class="audio-bar audio-seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="audio-bar-fill"></div></div>
+				<span class="audio-time">0:00 / 0:00</span>
+				<button class="audio-mute" aria-label="Mute"></button>
+				<div class="audio-bar audio-volume" role="slider" tabindex="0" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="audio-bar-fill" style="width:100%"></div></div>
+			</div>
+			<audio src="/${spooder.cache_bust(audio_path)}" preload="metadata"></audio>
+		</div>`;
+	},
 	thumb: async (input: string) => {
 		const { thumb_src, full_src, popout, title, pending_key, width, height } = await get_thumb(input);
 		const title_attr = title ? ` title="${title}"` : '';
