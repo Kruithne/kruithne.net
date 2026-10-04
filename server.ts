@@ -592,6 +592,40 @@ server.default((req, status_code) => cache.request(
 ));
 
 const STATIC_SUB_EXT = ['.css', '.js'];
+const RANGE_REGEX = /^bytes=(\d*)-(\d*)$/;
+
+// webkit requires 206 with a known total size in content-range to play media
+function serve_file_range(file: ReturnType<typeof Bun.file>, request: Request): Response {
+	const size = file.size;
+	const range = request.headers.get('range')?.match(RANGE_REGEX);
+
+	if (!range || (range[1] === '' && range[2] === ''))
+		return new Response(file, { headers: { 'Content-Type': file.type, 'Accept-Ranges': 'bytes' } });
+
+	let start: number;
+	let end: number;
+
+	if (range[1] === '') {
+		start = Math.max(0, size - Number(range[2]));
+		end = size - 1;
+	} else {
+		start = Number(range[1]);
+		end = range[2] === '' ? size - 1 : Math.min(Number(range[2]), size - 1);
+	}
+
+	if (start > end || start >= size)
+		return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+
+	return new Response(file.slice(start, end + 1), {
+		status: 206,
+		headers: {
+			'Content-Type': file.type,
+			'Accept-Ranges': 'bytes',
+			'Content-Range': `bytes ${start}-${end}/${size}`
+		}
+	});
+}
+
 server.dir('/static', './static', async (file_path, file, stat, request) => {
 	// ignore hidden files by default, return 404 to prevent file sniffing
 	if (path.basename(file_path).startsWith('.'))
@@ -610,7 +644,7 @@ server.dir('/static', './static', async (file_path, file, stat, request) => {
 		}
 	}
 	
-	return spooder.http_apply_range(file, request);
+	return serve_file_range(file, request);
 });
 // endregion
 

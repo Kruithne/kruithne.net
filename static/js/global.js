@@ -102,6 +102,11 @@ document.addEventListener('keydown', function(e) {
 
 	const audio_elements = [];
 
+	// ios ignores volume writes and always reports 1
+	const volume_probe = new Audio();
+	volume_probe.volume = 0.5;
+	const volume_supported = volume_probe.volume === 0.5;
+
 	function format_time(seconds) {
 		if (!isFinite(seconds))
 			return '0:00';
@@ -138,6 +143,9 @@ document.addEventListener('keydown', function(e) {
 		const time_el = player.querySelector('.audio-time');
 
 		audio_elements.push(audio);
+
+		if (!volume_supported)
+			volume_bar.hidden = true;
 
 		function update_time() {
 			const progress = audio.duration ? audio.currentTime / audio.duration : 0;
