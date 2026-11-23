@@ -170,6 +170,7 @@ const global_sub_table = {
 	cache_bust: spooder.cache_bust,
 	image: (img_path: string) => `<div class="image"><img src="/${spooder.cache_bust(img_path)}"></div>`,
 	video: (vid_path: string) => `<div class="image"><video src="/${spooder.cache_bust(vid_path)}" autoplay loop muted playsinline></video></div>`,
+	youtube: (id: string) => `<div class="image youtube"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}" title="YouTube video" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>`,
 	audio: (input: string) => {
 		// "static/sound/track.wav?title=Some Track"
 		const [audio_path, query_string] = input.split('?');

@@ -336,6 +336,18 @@ time {
 	height: auto;
 }
 
+.image.youtube {
+	display: block;
+	width: 100%;
+}
+
+.image.youtube > iframe {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border: 0;
+}
+
 .post-banner {
 	display: block;
 	width: 100%;
